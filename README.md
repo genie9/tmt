@@ -1,2 +1,2 @@
 # tmt
-topic modeling testing for exploration search project
+topic modeling testing for exploratory search project
