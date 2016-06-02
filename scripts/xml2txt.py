@@ -14,9 +14,6 @@ if len(sys.argv) != 2 :
 soup = []
 
 with open(sys.argv[1], 'r') as soupfile :
-#    for l in Soup(soupfile.readline(), 'xml') :
- #       if l == '\n' : continue 
-#        soup.append(l)
         soup = Soup(soupfile.read(), 'xml')
 #        print soup
         [x.extract() for x in soup.findAll('Math')]
@@ -36,4 +33,5 @@ with open(sys.argv[1], 'r') as soupfile :
 
         s = ' '.join([ stemmer.stem(word) for word in s.split() ])
 soupfile.closed
+
 print s 
