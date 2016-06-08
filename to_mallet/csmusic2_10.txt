@@ -1,0 +1,1 @@
+appendix c proof theorem proof theorem general result necessari condit mmv case defin pair equival data process inequ chain rule mutual inform noiseless measur sinc nois gaussian covari matrix given obtain upper bound asymptot sinc th largest eigenvalu consid inform given uniform chosen possibl asymptot number bit need decod distort rate given use fano inequ appli

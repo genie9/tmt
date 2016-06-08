@@ -1,0 +1,2 @@
+./mallet/bin/mallet import-file --input /data/arXiv_cs/.. --output ...mallet --keep-sequence
+./mallet/bin/mallet import-dir --input /data/arXiv_cs/.. --output ...mallet --keep-sequence

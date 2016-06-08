@@ -1,0 +1,1 @@
+conclus shown possibl find dens subgraph near given vertex without examin entir graph run time local algorithm quadrat term target size must least larg produc approxim subgraph conjectur better local algorithm exist particular would nice algorithm whose run time depend size subgraph produc rather subgraph whose densiti approxim

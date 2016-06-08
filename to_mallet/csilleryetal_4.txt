@@ -1,0 +1,1 @@
+avail requir project name r abcproject home page http cran r project org web packag abc index htmlversion oper system window linux macosprogram languag rother requir r version r packag nnet quantreg locfitlicens gnu gpl restrict use non academ none

@@ -6,3 +6,4 @@
  
 #rsync -avhzPe "ssh -A -t evly@shell.hiit.fi ssh -A ugluk.hiit.fi" --files-from =< (find /data/ -type f -name cs*.xml) python/|grep -v /$
 
+find /data/ -type f -name cs*.xml -exec rsync -avz --progress /home/evly/tmt/text/ \;
