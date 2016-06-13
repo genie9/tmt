@@ -43,14 +43,14 @@ def xml_open(in_file, dest_file) :
     #print in_file
     try :
         with open(in_file, 'r') as meta :
-            s = meta.name.rfind('/')
-            e = meta.name.find('.', s)
+#            s = meta.name.rfind('/')
+#            e = meta.name.find('.', s)
            # filename = dest_path + meta.name[s+1:e] + '.txt'
 
             print meta
             
-            meta_text = meta.read()
-            print len(meta_text)
+#            meta_text = meta.read()
+ #           print len(meta_text)
             
            # i = 0
            # istart = 0
@@ -70,18 +70,18 @@ def xml_open(in_file, dest_file) :
  #                   if iend != -1 :
  #                       meta.seek(istart)
       
-                        soup = Soup(meta.read(iend + wend_len - istart), 'xml')
+                        soup = Soup(meta.read(), 'xml')
 
-        for record in root.find(OAI+'ListIdentifiers').findall(OAI+"header"):
-             arxiv_id = record.find(OAI+'identifier')
-             dateed = info.find(ARXIV+"datestamp").text
-             created = datetime.datetime.strptime(created, "%Y-%m-%d")
- 
-             contents = {'id': arxiv_id.text[4:],
-                         'created': created,
-                         }
- 
-             df = df.append(contents, ignore_index=True)
+                for record in soup.find('ListIdentifiers').findall(OAI+"header"):
+                    arxiv_id = record.find('identifier')
+                    dateed = info.find("datestamp").text
+                    created = datetime.datetime.strptime(created, "%Y-%m-%d")
+                     
+                    contents = {'id': arxiv_id.text[4:],
+                             'created': created,
+                             }
+
+                    df = df.append(contents, ignore_index=True)
                         
                        # data += xml_clean(soup)
                        # secs.write(secs_text + '\n\n\n')
