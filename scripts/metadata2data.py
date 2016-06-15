@@ -1,103 +1,117 @@
 from bs4 import BeautifulSoup as Soup
-import nltk
-#nltk.download('stopwords')
-from nltk.corpus import stopwords
-from nltk.stem import SnowballStemmer
-import string, re
+import demjson as json
 import sys, os, io
-#from os import listdir
-
-
-# Takes cl arguments for input file and output path.
-# Divides tex.xml-text between '<section' and '</section' tags, 
-# cleans xml formating, stop words and punctuation.
-# Processes with stemmer.
-# Processed file is separeted between sections  with two (2) 'new lines' and
-# saved to destination path with original file name and .txt extension.
-#
- 
-def xml_clean(soup) :
-    [x.extract() for x in soup.findAll('Math')]
-
-    s = soup.get_text()
-
-    s_words = stopwords.words('english')
-
-    stemmer = SnowballStemmer('english')
-    
-    bad_chars = set(string.digits + string.punctuation)
-
-    s = s.lower().strip()
-
-    s = ''.join([ i if i not in bad_chars else ' ' for i in s ])
-
-    s = ' '.join([ i if i not in s_words else '' for i in s.split() ])
- 
-    s = ' '.join([ stemmer.stem(word) for word in s.split() ])
-
-    return s
-
+from itertools import islice
+import datetime
 
 
 def xml_open(in_file, dest_file) :
-    #print in_file
+#    size = os.path.getsize(in_file)
     try :
         with open(in_file, 'r') as meta :
-#            s = meta.name.rfind('/')
-#            e = meta.name.find('.', s)
-           # filename = dest_path + meta.name[s+1:e] + '.txt'
-
             print meta
-            
-#            meta_text = meta.read()
- #           print len(meta_text)
-            
-           # i = 0
-           # istart = 0
-           # iend = 0
-           # secs_text = ''
 
-           # wend = '</section>' #sys.argv[3]
-           # wend_len = len(wend)
-            
-            with io.open(dest_file, 'w', encoding='utf8') as data :
-#                while True:
-#                    istart = meta_text.find('<section ', iend)
-#                    if istart == -1 : break
+            meta.readline() 
+            meta.readline() 
 
-#                    iend = meta_text.find(wend, istart)
+            parsed = ''
+            j = 0
+            stop = 0
 
- #                   if iend != -1 :
- #                       meta.seek(istart)
-      
-                        soup = Soup(meta.read(), 'xml')
+            while stop == 0 :
+                to_read = ''
 
-                for record in soup.find('ListIdentifiers').findall(OAI+"header"):
-                    arxiv_id = record.find('identifier')
-                    dateed = info.find("datestamp").text
-                    created = datetime.datetime.strptime(created, "%Y-%m-%d")
-                     
-                    contents = {'id': arxiv_id.text[4:],
-                             'created': created,
-                             }
+                for i in range(0,11): 
+                    to_read += meta.readline()  #list(islice(meta, i, j) )
 
-                    df = df.append(contents, ignore_index=True)
-                        
-                       # data += xml_clean(soup)
-                       # secs.write(secs_text + '\n\n\n')
-                        
-                       # i += 1 
-                       # meta.seek(iend)
-            data.closed
+                    if to_read == '\n' :
+                        stop = 1
+                        print 'break'
+                        continue 
+
+                    res = test2( Soup(str(to_read), 'xml') )
+
+                if res[0] == 1 :
+                    if stop == 1 :
+                        print 'stop = 1'
+                    parsed += json.encode(res[1]) + '\n'
+                    j += 1
+                    print 'red in ', j, ' parts'
+
+                    if j % 1000 == 0 or stop == 1 :  
+                        if stop == 1 :
+                            print 'stop = 1'
+                        with io.open(dest_file + '_' + str(j), 'w', encoding='utf8') as data :
+                            data.write((parsed) + u"\u000A") # '\n')
+                            parsed = '' 
+                        data.closed
         meta.closed
     except IOError :
         print in_file/dest_file,' not found'
         return 
-    print ' splited in ', i, 'sections'
-    
- 
-#         root = ET.fromstring(xml)
- 
+#    print ' splited in ', i, 'sections'
+
+
+def test2(soup) :    
+    cs = 0    
+    if cs == 0 :
+        print 'ei lÃydy'
+    elif soup.find('categories') != None and soup.categories.string.find('cs') == 0 :
+        cs = 1
+        arxiv_id = soup.id.get_text()
+#        arxiv_id = arxiv_id[len(arxiv_id)-9 : len(arxiv_id)]
+
+#        title = soup.title.get_text()
+#        author = soup.author.get_text()
+        url = soup.url.get_text()
+
+#        dated = soup.updated.get_text()
+#        if dated != 'NA' :
+#            dated = datetime.datetime.strptime(dated, "%Y-%m-%d")
+         
+#        created = soup.created.get_text()
+#        created = datetime.datetime.strptime(created, "%Y-%m-%d")
+        
+        contents = [{'id': arxiv_id,
+              #  'title': title,
+              #  'author': author,
+              #  'created': created,
+              #  'updated': dated,
+                'url': url
+                 }]
+
+#      df = df.append(contents, ignore_index=True)
+        return (cs, contents)
+    else : return (cs, '')
+
+
+def test() :
+                for record in soup.findall("article"):
+                    if record.find('venue').get_text == 'arXiv Computer Science' :
+                        arxiv_id = record.find('id').get_text
+                        arxiv_id = arxiv_id[len(arxiv_id)-9 : len(arxiv_id)-1]
+
+                        title = record.find('title').get_text
+                        author = record.find('author').get_text
+                        url = record.find('url').get_text
+
+                        dated = record.find("updated").get_text
+                        dated = datetime.datetime.strptime(dated, "%Y-%m-%d")
+                         
+                        created = record.find("created").get_text
+                        created = datetime.datetime.strptime(created, "%Y-%m-%d")
+
+                        contents = [{'id': arxiv_id,
+                                'title': title,
+                                'author': author,
+                                'created': created,
+                                'updated': dated,
+                                'url': url
+                                 }]
+
+#                        df = df.append(contents, ignore_index=True)
+                        
+                        data.write(json.encode(contents) + '\n') 
 
 
 def main(argv):
@@ -108,7 +122,7 @@ def main(argv):
     in_file = argv[1]
     dest_file = argv[2]
 
-    xml_open(in_path, dest_file)
+    xml_open(in_file, dest_file)
     
     pass
 

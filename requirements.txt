@@ -5,3 +5,4 @@ scipy==0.15.1
 pandas==0.18.1
 beautifulsoup4==4.4.1
 lxml==3.6.0
+demjson==1.6
