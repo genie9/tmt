@@ -1,25 +1,45 @@
-#!/bin/bash
+#qqqq)!/bin/bash
 
+path_xml="/data/arXiv-??/*/"
+path_meta="/home/evly/tmt/bigdata/arxiv_meta"
+path_years="/home/evly/tmt/bigdata/arxiv_years"
+path_mallet="/data/mallet_tests/arXiv_cs/"
 
-
-#ssh -A -t evly@shell.hiit.fi ssh -A ugluk.hiit.fi 'find /data/ -type f -name cs*.xml -print0 |xargs -I% -0 rsync -aPvhze "ssh -A -t evly@shell.hiit.fi ssh -A ugluk.hiit.fi" :% /home/evly/arxiv/ |grep -v /$'
  
-#rsync -avhzPe "ssh -A -t evly@shell.hiit.fi ssh -A ugluk.hiit.fi" --files-from =< (find /data/ -type f -name cs*.xml) python/|grep -v /$
-
-#find /data/ -type f -name cs*.xml -exec rsync -avz --progress /home/evly/tmt/text/ \;
-
-path="/data/arXiv-??"
-
-for i in $(ls $path); do
-    sudo rsync -avz --progress $i /data/mallet_tests/ \;
+# go through files with id and make soft links to $path_mallet
+for f in $(ls $path_meta); do
+    i=0
+    for id in $(cut -d '"' -f4 $f); do
+        echo "found id "$id
+        path_id=find $path_xml$id -type d
+        if [ -d $path_id ]; then
+            echo "found path "$path_id
+            find $path_id -name "*.xml"
+            #i=$((i+1))
+        else
+            echo "found file"
+            find $path_xml -name "$id.xml" 
+            #i=$((i+1))
+        fi
+    done
+    echo "1000 entrys processed in "$f
 done
 
-for i in $(ls $path); do
-    sudo rsync -avz --progress $path$i /data/mallet_tests/ \;
-done 
-for i in $(ls $path); do
-    sudo rsync -avz --progress $i /data/mallet_tests/ \;
-done
+echo "done"
+
+find /data/arXiv-??/*/ -maxdepth 3 -mindepth 1  >> /home/evly/tmt/bigdata/find.txt
+
+#for d in $(ls $path_xml); do
+     
+ #   find $path_xml -path *$tmp* -prune -exec find {} -name *.xml \; | sudo rsync -avz --progress  $i /data/mallet_tests/ \;
+#done
+
+#for i in $(ls $path); do
+ #   sudo rsync -avz --progress $path$i /data/mallet_tests/ \;
+#done 
+#for i in $(ls $path); do
+ #   sudo rsync -avz --progress $i /data/mallet_tests/ \;
+#done
 
 #find $path$i -path *cs*/*.xml -exec 
-find $path -path */cs* -type d -prune -exec find {} -name *.xml \;
+#FIND $PATH -path */cs* -type d -prune -exec find {} -name *.xml \;

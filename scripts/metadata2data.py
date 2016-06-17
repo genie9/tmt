@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup as Soup
-import demjson as json
+import json
 import sys, os, io
 from itertools import islice
 import datetime
@@ -14,104 +14,107 @@ def xml_open(in_file, dest_file) :
             meta.readline() 
             meta.readline() 
 
-            parsed = ''
+            parsed = [] 
             j = 0
+            k = 0
             stop = 0
 
             while stop == 0 :
                 to_read = ''
 
                 for i in range(0,11): 
-                    to_read += meta.readline()  #list(islice(meta, i, j) )
+                    tmp = meta.readline()
 
-                    if to_read == '\n' :
+                    if tmp == '' or tmp == '\n' :
                         stop = 1
-                        print 'break'
-                        continue 
+                        print 'must end after that'
+                        break
 
-                    res = test2( Soup(str(to_read), 'xml') )
+                    to_read += tmp  #list(islice(meta, i, j) )
 
-                if res[0] == 1 :
-                    if stop == 1 :
-                        print 'stop = 1'
-                    parsed += json.encode(res[1]) + '\n'
+
+                res = test2( Soup(str(to_read), 'xml') )
+
+                if res == 0 :
+                    k += 1
+                    print 'stop = ', stop
+                    print res, 'bad part #', k
+                
+                elif res[0] == 1 or stop == 1 :
+                    if stop == 1 and parsed != [] : 
+                        write_dest(dest_file, j, parsed) 
+                        print 'vika stop'
+                        return
+                    parsed.append(res[1])
                     j += 1
                     print 'red in ', j, ' parts'
 
-                    if j % 1000 == 0 or stop == 1 :  
-                        if stop == 1 :
-                            print 'stop = 1'
-                        with io.open(dest_file + '_' + str(j), 'w', encoding='utf8') as data :
-                            data.write((parsed) + u"\u000A") # '\n')
-                            parsed = '' 
-                        data.closed
+                    if j % 1000 == 0 : 
+                        write_dest(dest_file, j, parsed) 
+                        parsed = []
+                        print 'empty?? ', parsed
         meta.closed
     except IOError :
-        print in_file/dest_file,' not found'
+        print in_file, ' not found'
         return 
-#    print ' splited in ', i, 'sections'
+    
+
+def  write_dest(dest_file, j, parsed) :
+    try :
+        with io.open(dest_file + '_' + str(j), 'w', encoding='utf8') as data :
+            data.write(unicode(json.dumps(parsed, ensure_ascii=False)))  #+ u"\u000A") # '\n')
+        data.closed
+    except IOError :
+        print dest_file,' not found'
+        return 
+
 
 
 def test2(soup) :    
     cs = 0    
-    if cs == 0 :
-        print 'ei l√ydy'
-    elif soup.find('categories') != None and soup.categories.string.find('cs') == 0 :
+    if soup.find('categories') != None and soup.categories.string.find('cs') == 0 :
         cs = 1
-        arxiv_id = soup.id.get_text()
-#        arxiv_id = arxiv_id[len(arxiv_id)-9 : len(arxiv_id)]
+        arxiv_id = soup.id.get_text().replace('/', '')
+        url = soup.url.get_text()
+        
+        contents = {
+            'id': arxiv_id,
+            'url': url
+        }
 
-#        title = soup.title.get_text()
-#        author = soup.author.get_text()
+        return (cs, contents)
+    else : return 0
+
+
+def test() :
+    cs = 0    
+    if soup.find('categories') != None and soup.categories.string.find('cs') == 0 :
+        cs = 1
+        arxiv_id = soup.id.get_text().replace('/', '')
+        arxiv_id = arxiv_id[len(arxiv_id)-9 : len(arxiv_id)]
+
+        title = soup.title.get_text()
+        author = soup.author.get_text()
         url = soup.url.get_text()
 
-#        dated = soup.updated.get_text()
-#        if dated != 'NA' :
-#            dated = datetime.datetime.strptime(dated, "%Y-%m-%d")
+        dated = soup.updated.get_text()
+        if dated != 'NA' :
+            dated = datetime.datetime.strptime(dated, "%Y-%m-%d")
          
-#        created = soup.created.get_text()
-#        created = datetime.datetime.strptime(created, "%Y-%m-%d")
+        created = soup.created.get_text()
+        created = datetime.datetime.strptime(created, "%Y-%m-%d")
         
         contents = [{'id': arxiv_id,
-              #  'title': title,
-              #  'author': author,
-              #  'created': created,
-              #  'updated': dated,
+                'title': title,
+                'author': author,
+                'created': created,
+                'updated': dated,
                 'url': url
                  }]
 
 #      df = df.append(contents, ignore_index=True)
-        return (cs, contents)
-    else : return (cs, '')
-
-
-def test() :
-                for record in soup.findall("article"):
-                    if record.find('venue').get_text == 'arXiv Computer Science' :
-                        arxiv_id = record.find('id').get_text
-                        arxiv_id = arxiv_id[len(arxiv_id)-9 : len(arxiv_id)-1]
-
-                        title = record.find('title').get_text
-                        author = record.find('author').get_text
-                        url = record.find('url').get_text
-
-                        dated = record.find("updated").get_text
-                        dated = datetime.datetime.strptime(dated, "%Y-%m-%d")
-                         
-                        created = record.find("created").get_text
-                        created = datetime.datetime.strptime(created, "%Y-%m-%d")
-
-                        contents = [{'id': arxiv_id,
-                                'title': title,
-                                'author': author,
-                                'created': created,
-                                'updated': dated,
-                                'url': url
-                                 }]
-
-#                        df = df.append(contents, ignore_index=True)
-                        
-                        data.write(json.encode(contents) + '\n') 
+        return (cs, year, contents)
+    else : return 0
 
 
 def main(argv):
