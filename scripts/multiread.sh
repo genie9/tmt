@@ -1,4 +1,4 @@
-#qqqq)!/bin/bash
+#!/bin/bash
 
 path_xml="/data/arXiv-??/*/"
 path_meta="/home/evly/tmt/bigdata/arxiv_meta"
@@ -26,8 +26,6 @@ for f in $(ls $path_meta); do
 done
 
 echo "done"
-
-find /data/arXiv-??/*/ -maxdepth 3 -mindepth 1  >> /home/evly/tmt/bigdata/find.txt
 
 #for d in $(ls $path_xml); do
      
