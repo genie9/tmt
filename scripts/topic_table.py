@@ -12,11 +12,11 @@ def title(html_soup) :
     tbody = html_soup.find('tbody')
     for tr in tbody('tr') :
         th = tr.th.string
-        i = -1 
+        i = 0 
         for td in tr.findAll('td') :
-            if i > -1 :
-                text = 'topic # '+str(i)+', article id '+th
-                td['title'] = text
+#            if i > -1 :
+            text = 'topic # '+str(i)+', article id '+th
+            td['title'] = text
             i += 1
     return html_soup
   
@@ -29,7 +29,7 @@ def color_cells(html_soup) :
     return html_soup
 
 
-def tr2th(html_soup) :
+def td2th(html_soup) :
     tbody = html_soup.find('tbody')
     for tr in tbody.findAll('tr') :
         td = tr.find('td')    
@@ -40,8 +40,8 @@ def tr2th(html_soup) :
 
 
 #path = '/data/mallet_tests/from_mallet/thursday_compostion.txt'
-def df2html(input_path, dest_path) :
-    mega_list = pd.read_csv(input_path, delimiter='\t', names=['year','File']+[str(i) for i in range(50)], na_values=[''], engine='c')
+def df2html(input_path, dest_path, topics) :
+    mega_list = pd.read_csv(input_path, delimiter='\t', names=['year','File']+[str(i) for i in range(topics)], na_values=[''], engine='c')
     mega_list.File= mega_list.File.str[5:]
 #    print mega_list.iloc[0:7, 0:4]
 
@@ -68,19 +68,20 @@ def df2html(input_path, dest_path) :
             html_soup = soup(df.to_html(), 'lxml')
             print 'HTML to soup: done'
     
-            tr2th(html_soup)        
+            td2th(html_soup)        
             tbl.write(unicode(color_cells(title(html_soup)).prettify('utf8')))
         tbl.closed
     return 'done transforming'
 
 
 def main(argv):
-    if len(argv) != 3 :
-        print '**Usage: ', argv[0], ' <input path> <output path>'
+    if len(argv) != 4 :
+        print '**Usage: ', argv[0], ' <input path> <output path> <num of topics>'
         sys.exit()
 
     in_path = argv[1]
     dest_path = argv[2]
+    topics = int(argv[3])
 
 #    if not os.path.exists(dest_path) :
 #        os.makedirs(dest_path)
@@ -88,7 +89,7 @@ def main(argv):
 #    if dest_path[len(dest_path)-1] != '/' :
 #        dest_path += '/'
 
-    out = df2html(in_path, dest_path)
+    out = df2html(in_path, dest_path, topics)
 
     print out
     pass
