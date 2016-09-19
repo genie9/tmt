@@ -81,7 +81,7 @@ def color_cells(tds) :
 def df2html(input_path, dest_path, topics) :
     mega_list = pd.read_csv(input_path, delimiter='\t', names=['year','File']+[str(i) for i in range(topics)], na_values=[''], engine='c')
     mega_list.File= mega_list.File.str[5:]
-#    print mega_list.iloc[0:7, 0:4]
+    print mega_list.iloc[0:7, 0:4]
     print 'dataframe created'
 
     wc = mega_list.File.apply(lambda x : len(open(str(x),'r').read().split()))
@@ -119,8 +119,7 @@ def df2html(input_path, dest_path, topics) :
         tbl.closed
         gc.collect()
         print 'done'
-    return 'done transforming'
-
+    return 'done transforming, mean of word count is %d' % df.wc.mean()
 
 def main(argv):
     if len(argv) != 4 :

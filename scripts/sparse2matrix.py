@@ -17,27 +17,37 @@ def sparse2matrix(inpath1, inpath2, topics_num, file_name) :
 #                    print l_tor
                 len_tor = int(topics_num.split('x')[0])
                 mat_tor = mat.sparse2full(doc=l_tor,length=len_tor)
+#                print mat_tor.size             
 
-                for line_ble in comparable :
-                    print line_ble.split()[:2]
-                    l_ble = line_ble.split()[2:]
-                    l_ble = tuple( (tuple (map (int, (i.split(':')))) for i in l_ble))
+#                for line_ble in comparable :
+                line_ble = comparable.readline()
+                print line_ble.split()[:2]
+                l_ble = line_ble.split()[2:]
+                l_ble = tuple( (tuple (map (int, (i.split(':')))) for i in l_ble))
 #                    print l_ble
-                    len_ble = int(topics_num.split('x')[1])
-                    mat_ble = mat.sparse2full(doc=l_ble,length=len_ble)
-                    
-                    matrix = n.zeros(shape=(len_tor,len_ble))
+                len_ble = int(topics_num.split('x')[1])
+                mat_ble = mat.sparse2full(doc=l_ble,length=len_ble)
+#                    print mat_ble.size
+#                    sys.exit()
 
-                    for i in xrange(len_tor) :
-                        for j in xrange(len_ble) :
-                            matrix[i][j] = pow((math.sqrt(mat_tor[i]) - math.sqrt(mat_tor[j])),2)
-                    
-                    with open(destpath+'_'+line_tor.split()[1]+'.txt', 'w') as matrixfile :
-                        matrixfile.write(str(mat.full2sparse(matrix)))
-                    matrixfile.closed
-                    print 'word %d done' % i                                        
-                    i += 1
-
+                matrix = n.zeros(shape=(len_ble,len_tor))
+#                    print matrix
+#                    sys.exit()
+                for k in xrange(len_tor) :
+#                        print 'ollaan koossa'
+                    for j in xrange(len_ble) :
+#                            print 'ollaan jiissa'
+#                            matrix[j][k] = k*j
+#                            print matrix
+#                    sys.exit()    
+                        matrix[j][k] = pow(abs((math.sqrt(mat_tor[k]) - math.sqrt(mat_ble[j]))),2)
+                        print matrix[j][k]
+                sys.exit()
+                with open(destpath+'_'+line_tor.split()[1]+'.txt', 'w') as matrixfile :
+                    matrixfile.write(str(mat.full2sparse(matrix)))
+                matrixfile.closed
+                print 'word %s done' %  line_ble.split()[:2]
+                i += 1 
         comparator.closed
     comparable.closed
     

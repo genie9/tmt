@@ -70,8 +70,12 @@ def xml_clean(soup) :
 
     s = ' '.join(( i if len(i) > 2 else '' for i in s.split() ))
     
-    s = ' '.join(( i for i in s.split() if enchant_dict_us.check(i) or enchant_dict_gb.check(i) or i in wordz ))
-
+    s = ' '.join(( i for i in s.split() if enchant_dict_us.check(i) or enchant_dict_gb.check(i) )) 
+    
+    df_wordz = pd.Series(wordz)
+    df_junk =pd.Series(junk)
+    print 'ok'
+    sys.exit()
     s = ' '.join(( stemmer.stem(i) for i in s.split() ))
 
     s = ' '.join(( i for i in s.split() if i not in junk))
@@ -110,7 +114,7 @@ def xml_open(in_file, dest_path, size) :
                 tag = sec
                 soup = soup_s
             if len(soup_s) == 0 and len(soup_p) == 0 : 
-                write_error(texml.name)
+                write_error(texml.name, '-1')
                 return
 
             if size == 'split' :
@@ -125,10 +129,10 @@ def xml_open(in_file, dest_path, size) :
         return 
 
 
-def write_error(file_name) :
+def write_error(file_name, size) :
     try :
         with io.open(error_file, 'a', encoding='utf8') as erfile :
-            erfile.write(unicode(file_name) + '\n')
+            erfile.write('%s, %s\n' % (unicode(file_name),size))
             print '%s added to error file' % file_name
         erfile.closed
     except IOError :
@@ -146,7 +150,9 @@ def make_sec_files(dest_path, article, soup, tag) :
         dest_file = dest_path + '/' + article + '/' + article + '_' + str(i) + '.txt'
         s = xml_clean(sec)
 
-        if len(s)>0 :
+        size = len(s.split())
+
+        if size > 10 :
             try :
                 with io.open(dest_file, 'w', encoding='utf8') as ifile :
                     ifile.write(s+'\n')
@@ -155,6 +161,8 @@ def make_sec_files(dest_path, article, soup, tag) :
             except IOError :
                 print dest_file,' not found'
                 return 
+        else :
+            write_error(article + '_' + str(i), str(size))
 
     return 'article %s processed, splited in %d files' % (article, i)
 
@@ -163,7 +171,9 @@ def make_art_file(dest_path, article, soup) :
     dest_file = dest_path + '/' + article + '.txt'
     s = xml_clean(soup)
 
-    if len(s)>0 :
+    size = len(s.split())
+
+    if size > 10 :
         try :
             with io.open(dest_file, 'w', encoding='utf8') as ifile :
                 ifile.write(s+'\n')
@@ -173,7 +183,7 @@ def make_art_file(dest_path, article, soup) :
             return
         return 'article %s processed' % article
     else : 
-        write_error(article)
+        write_error(article, str(size))
 
 ################################################################
 

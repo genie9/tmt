@@ -6,7 +6,7 @@ from nltk.stem import SnowballStemmer
 import numpy as np
 import pandas as pd
 import string, re
-import sys, os, io
+import sys, os, io, timeit
 import enchant
 import datetime as date
 
@@ -30,6 +30,7 @@ error_file = '/data/mallet_tests/aaa_' + today + '_errorfiles.txt'
 # Alan's compilation of english nonbasic words
 english = open('/home/evly/tmt/english.txt')
 wordz = set(english.read().split('\n'))
+df_wordz = pd.Series(list(wordz))
 english.closed
 
 # enchant dictionary
@@ -38,17 +39,21 @@ enchant_dict_gb = enchant.Dict('en_GB')
 
 # nltk text processing helpers
 nltk.download('stopwords')
-s_words = stopwords.words('english')
+s_words_nltk = set(stopwords.words('english'))
+s_words_evly = set(['also','thus','however','therefore','about','followed','following','follows','etc','always','among','amongst'])
+s_words = s_words_nltk.union(s_words_evly)
+
 stemmer = SnowballStemmer('english')
 
 # python's charachter methods
 # deprecated after taking regex sub method in use
-bad_chars = set(string.digits + string.punctuation)
+bad_chars = sorted(set(string.digits + string.punctuation))
 
-# unfrequent an too frequent words
+# unfrequent and too frequent words
 # examined from output data after first run of this script
 junk_file = open('/data/mallet_tests/junkwords3.txt')
-junk = [line.split(',')[0] for line in junk_file]
+junk = ([line.split(',')[0] for line in junk_file])
+df_junk = pd.Series(junk)
 junk_file.closed
 
 
@@ -70,11 +75,25 @@ def xml_clean(soup) :
 
     s = ' '.join(( i if len(i) > 2 else '' for i in s.split() ))
     
-    s = ' '.join(( i for i in s.split() if enchant_dict_us.check(i) or enchant_dict_gb.check(i) or i in wordz ))
-
+    s = ' '.join(( i for i in s.split() if enchant_dict_us.check(i) or enchant_dict_gb.check(i) )) 
+    
+    df_soup = pd.Series(s.split())
+    
+    df_soup = df_soup[df_soup.isin(df_wordz)==True]
+    
+    s = ' '.join(i for i in df_soup.tolist())
+    
     s = ' '.join(( stemmer.stem(i) for i in s.split() ))
+    
+    df_soup = pd.Series(s.split())
+    
+    df_soup = df_soup[df_soup.isin(df_junk)==False]
+    
+    s = ' '.join(i for i in df_soup.tolist())
 
-    s = ' '.join(( i for i in s.split() if i not in junk))
+#    print s
+#    s = ' '.join(( i for i in s.split() if i not in junk))
+#    sys.exit()
  
     return s
 
@@ -110,7 +129,7 @@ def xml_open(in_file, dest_path, size) :
                 tag = sec
                 soup = soup_s
             if len(soup_s) == 0 and len(soup_p) == 0 : 
-                write_error(texml.name)
+                write_error(texml.name, '-1')
                 return
 
             if size == 'split' :
@@ -125,10 +144,10 @@ def xml_open(in_file, dest_path, size) :
         return 
 
 
-def write_error(file_name) :
+def write_error(file_name, size) :
     try :
         with io.open(error_file, 'a', encoding='utf8') as erfile :
-            erfile.write(unicode(file_name) + '\n')
+            erfile.write('%s, %s\n' % (unicode(file_name),size))
             print '%s added to error file' % file_name
         erfile.closed
     except IOError :
@@ -146,7 +165,9 @@ def make_sec_files(dest_path, article, soup, tag) :
         dest_file = dest_path + '/' + article + '/' + article + '_' + str(i) + '.txt'
         s = xml_clean(sec)
 
-        if len(s)>0 :
+        size = len(s.split())
+
+        if size > 10 :
             try :
                 with io.open(dest_file, 'w', encoding='utf8') as ifile :
                     ifile.write(s+'\n')
@@ -155,6 +176,8 @@ def make_sec_files(dest_path, article, soup, tag) :
             except IOError :
                 print dest_file,' not found'
                 return 
+        else :
+            write_error(article + '_' + str(i), str(size))
 
     return 'article %s processed, splited in %d files' % (article, i)
 
@@ -163,7 +186,9 @@ def make_art_file(dest_path, article, soup) :
     dest_file = dest_path + '/' + article + '.txt'
     s = xml_clean(soup)
 
-    if len(s)>0 :
+    size = len(s.split())
+
+    if size > 10 :
         try :
             with io.open(dest_file, 'w', encoding='utf8') as ifile :
                 ifile.write(s+'\n')
@@ -173,7 +198,7 @@ def make_art_file(dest_path, article, soup) :
             return
         return 'article %s processed' % article
     else : 
-        write_error(article)
+        write_error(article, str(size))
 
 ################################################################
 
