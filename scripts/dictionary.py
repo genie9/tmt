@@ -1,5 +1,5 @@
 import re
-import enchant
+#import enchant
 from sys import stderr
 
 badchars_pattern = re.compile("[^a-zA-Z\s]")
@@ -7,16 +7,16 @@ badchars_pattern = re.compile("[^a-zA-Z\s]")
 wiki_match_badchars = re.compile("[^A-Za-z0-9_\,\.\(\)\-\s]")
 wiki_sub_remove = re.compile("[\"\(\)\,:]")
 wiki_sub_replace = re.compile("[\-_/]")
-enchant_dict_us = enchant.Dict('en_US')
-enchant_dict_gb = enchant.Dict('en_GB') 
+#enchant_dict_us = enchant.Dict('en_US')
+#enchant_dict_gb = enchant.Dict('en_GB') 
 
 
 def build_custom_dict() :
         science_dict = set()
-
+        path = '/home/evly/tmt/'
         # wikipedia titles contain all kinds of weird characters
         # at the beginning and end of lines, filter these ones out...
-        for wordlist in ('custom_scientific_US_ascii.txt', 'custom_scientific_UK_ascii.txt', 'wiktionary_english_only.txt') :
+        for wordlist in (path+'custom_scientific_US_ascii.txt', path+'custom_scientific_UK_ascii.txt', path+'wiktionary_english_only.txt') :
             with open(wordlist) as f :
                 for line in f :
                     line = line.strip()
