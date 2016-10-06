@@ -1,5 +1,5 @@
 from gensim.models.phrases import Phrases
-import os, sys
+import os, sys, subprocess
 import pandas as pd
 from nltk.stem import SnowballStemmer
 
@@ -8,7 +8,7 @@ stemmer = SnowballStemmer('english')
 
 def print_bigrams(bigram,bigram_file) :
     #for phrase, score in bigram.export_phrases([j for i,j in read]) :
-        print (u'{0} {1}'.format(phrase,score))
+        #print (u'{0} {1}'.format(phrase,score))
     #sys.exit()
 
     ####### save unique sorted bigrams ########################################
@@ -24,9 +24,11 @@ def print_bigrams(bigram,bigram_file) :
     print df[0].unique()
     #sys.exit()
 
-
+i = 0
 def save_docs(f,d,stem,dest_path) :
-#    print d
+    global i
+    print 'saving to ', dest_path
+
     d = map(lambda x: x.encode('utf8'), d)
 #    d = ' '.join( map(lambda x: x.encode('utf8'), d))
     if stem == True : 
@@ -34,40 +36,47 @@ def save_docs(f,d,stem,dest_path) :
     else :
         d = ' '.join(d)
 
-    with open(dest_path+str(f.name.rsplit('/',1)[1]), 'w') as o :
+    with open(dest_path+str(f.rsplit('/',1)[1]), 'w') as o :
         o.write(str(d))
+        i += 1
     o.closed
-
+    print i
   
 
 def main(argv):
 
-    if len(argv) < 4 :
-        print '**Usage: ', argv[0], '<input path> <output path> <threshold [1-10]> [stem]'
+    if len(argv) < 6 :
+        print '**Usage: ', argv[0], '<input path full> <input path sections> <output path full> <output path sections> <threshold [1-10]> [stem]'
         sys.exit()
 
-    in_path = argv[1]
-    dest_path = argv[2]
-    thres = float(argv[3])
+    in_path_full = argv[1]
+    in_path_sec = argv[2]
+    dest_path_full = argv[3]
+    dest_path_sec = argv[4]
+    thres = float(argv[5])
     stem = False
 
-    if len(argv) == 5 :
-        if argv[4] == 'stem' :
+    if len(argv) == 7 :
+        if argv[6] == 'stem' :
             stem = True
 
-    if not os.path.exists(dest_path) :
-        os.makedirs(dest_path)
+    if not os.path.exists(dest_path_full) :
+        os.makedirs(dest_path_full)
+    if not os.path.exists(dest_path_sec) :
+        os.makedirs(dest_path_sec)
 
-    if dest_path[len(dest_path)-1] != '/' :
-        dest_path += '/'
+    if dest_path_full[len(dest_path_full)-1] != '/' :
+        dest_path_full += '/'
+    if dest_path_sec[len(dest_path_sec)-1] != '/' :
+        dest_path_sec += '/'
 
-    files = os.listdir(in_path)
-    opened = (open(path+f) for f in files)
-    
+    files_full = os.listdir(in_path_full)
+    opened = (open(in_path_full+f) for f in files_full)
+
     read = [(f, f.read().split()) for f in opened]
     t = [d for f,d in read]
     
-    bigram = Phrases(t, threshold=thres)
+    bigram = Phrases(t, threshold=thres,delimiter='-')
 
     ########## trigrams ###########################################
 
@@ -81,7 +90,11 @@ def main(argv):
 #    # uncomment for use
 #    print_bigrams(bigram, 'file')    
     
-    [save_docs(f,bigram[d],stem,dest_path) for f,d in read]
+    [save_docs(f.name,bigram[d],stem,dest_path_full) for f,d in read]
+
+    files_sec = subprocess.check_output(["find", in_path_sec, "-maxdepth", "2", "-mindepth", "2", "-type", "f"])
+    
+    [save_docs(i,bigram[d],stem,dest_path_sec) for i,d in [(f, open(f).read().split()) for f in files_sec.split() if os.path.isfile(f)]]
 
     pass
 

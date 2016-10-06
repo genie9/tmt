@@ -52,26 +52,25 @@ stemmer = SnowballStemmer('english')
 
 
 def xml_clean(s, stem, opt) :
-    title = ''
-    if opt == 'split' :
-        t = s.find('title')
-        if t != None :
-            title = (re.sub('[^a-zA-Z0-9\-]', ' ', t.text))
-#            print title
-    s = s.get_text()
-
+#    title = ''
+#    if opt == 'split' :
+#        do_title(s)
+#    s = s.get_text()
+    title = do_title(s) if opt == 'split' else None
+    
     s = re.sub(r'\s+-', ' ', re.sub('[^a-z\-]', ' ', re.sub(r'-\s+', '', s.lower().strip())))
 
+#    print s
     s = [ i if len(i) > 1 else '' for i in s.split() ]
     
     s = pd.Series(s)
 
     s = s[-s.isin(s_words)]
 
-    non = s[-s.isin(wordz)].str.cat(sep=' ')
+    non = s[-s.isin(wordz)].astype(np.object).str.cat(sep=' ')
     non = ' '.join(( i for i in non.split() if enchant_dict_us.check(i) or enchant_dict_gb.check(i) ))
 
-    eng = s[s.isin(wordz)].str.cat(sep=' ')
+    eng = s[s.isin(wordz)].astype(np.object).str.cat(sep=' ')
 
     s = eng+' '+non
 
@@ -83,6 +82,15 @@ def xml_clean(s, stem, opt) :
     
     return s
 
+def do_title(s) :
+    title = ''
+    t = s.find('title')
+#    print t
+    if t != None :
+        title = (re.sub('[^a-zA-Z0-9\-]', ' ', t.text))
+#            print title
+    return title
+
 i = 0
 def xml_open(in_file, dest_path, opt, stem) :
     global title_list, i
@@ -90,41 +98,40 @@ def xml_open(in_file, dest_path, opt, stem) :
 
     try :
         with open(in_file, 'r') as texml :
+            print 'processing ', texml
+            
             s = texml.name.rfind('/')
             e = texml.name.find('.xml', s)
             article = texml.name[s+1:e]
-
-            print 'processing ', texml
+            soup = Soup(texml.read(), 'lxml')
+        texml.closed
             
-            if opt == 'split' :
-                s = Soup(texml.read(), 'lxml')
-                [ x.extract() for x in s.findAll('math')]
-                soup = s.findAll('section') 
+        if opt == 'split' :
+            [ x.extract() for x in soup.findAll('math')]
+            s = soup.findAll('section') 
 
-                if len(soup) == 0 :
-                    soup = s.findAll('paragraph')
-                    if len(soup) == 0 :
-                        write_error(article, '-1')
-                        return
-                print make_sec_files(dest_path, article, soup, stem, opt)
-
-            elif opt == 'full' :
-                s = Soup(texml.read(), 'lxml', parse_only=Strain(['section','paragraph']))
+            if len(s) == 0 :
+                s = soup.findAll('paragraph')
                 if len(s) == 0 :
                     write_error(article, '-1')
                     return
-                [ x.extract() for x in s.findAll('math')]
+            print make_sec_files(dest_path, article, s, stem, opt)
 
-                title = ''
-                t = s.find('title')
-                if t != None :
-                    title = t.text
+        elif opt == 'full' :
+            title = do_title(soup)
+
+            [ x.extract() for x in soup.findAll('math')]
+
+            s = soup.findAll(['section','paragraph'])
+
+            if len(s) > 0 :        
                 title_list += article+','+title+'\n'
-                
-                print make_art_file(dest_path, article, s, stem, opt)
+                s = reduce(lambda x,y : x+' '+y, map(lambda x : x.text, s))
+                print 'text done'
+            else : write_error(article, '-1'); return
+            
+            print make_art_file(dest_path, article, s, stem, opt)
 
-        texml.closed
-        
         i += 1
         print i
 
@@ -149,6 +156,10 @@ def make_sec_files(dest_path, article, soup, stem, opt) :
     if not os.path.exists(dest_path + article) :
         os.makedirs(dest_path + article)
 
+    def double_act(sec) :
+        do_title(sec)
+        xml_clean(sec.text,stem,opt)
+
     def save_secs(s, sec_len, title, sec_num) :
         global title_list
         dest_file = dest_path+'/'+article+'/'+article+'_'+str(sec_num)+'.txt'
@@ -164,16 +175,18 @@ def make_sec_files(dest_path, article, soup, stem, opt) :
                 return
         else :
             write_error(article + '_' + str(sec_num), sec_len)
+    
+    secs = map(lambda sec : double_act(sec), soup)
+#    secs = map(lambda sec : xml_clean(sec.text,stem,opt), soup)
 
-    secs = map(lambda sec : xml_clean(sec,stem,opt), soup)
     map(lambda x : save_secs(x[1], len(x[1].split()),x[0], secs.index(x)), secs)
 
     return 'article %s processed, splited in %d files' % (article, len(secs))
 
 
-def make_art_file(dest_path, article, soup, stem, opt) :    
+def make_art_file(dest_path, article, s, stem, opt) :    
     dest_file = dest_path + '/' + article + '.txt'
-    s =  xml_clean(soup,stem,opt)
+    s =  xml_clean(s,stem,opt)
 
     size = len(s.split())
 
@@ -223,8 +236,12 @@ def main(argv):
 
     map(lambda doc : xml_open(in_path+doc, dest_path, opt, stem), os.listdir(in_path)) 
 
-    global title_file
-    with open('/data/mallet_tests/support/'+opt+'_'+today+'_doc_title.txt') as title_file :
+    global title_list
+#    title_path = '/data/mallet_tests/support/'+opt+'_'+today+'_doc_title.txt'
+#    if os.path.exists(title_path) :
+#        os.remove(title_path)
+
+    with io.open('/data/mallet_tests/support/'+opt+'_'+today+'_doc_title.txt','a', encoding='utf8') as title_file :
         title_file.write(title_list)
     title_file.closed
 

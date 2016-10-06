@@ -59,7 +59,7 @@ def do_count3(l,m) :
 def main(argv):
 
     if len(argv) != 4 :
-        print '**Usage: ', argv[0], '<input path> <output path sorted by docs> <output path sorted by words'
+        print '**Usage: ', argv[0], '<input path> <output path sorted by docs> <output path sorted by words>'
         sys.exit()
 
     in_path = argv[1]
@@ -69,7 +69,7 @@ def main(argv):
     files = os.listdir(in_path)
     size = len(files)
     
-    opened = (open(path+f) for f in files)
+    opened = (open(in_path+f) for f in files)
     read = (f.read().split() for f in opened)
 
     # create table of dictionaries with word count for each document 
@@ -81,7 +81,7 @@ def main(argv):
     print 'wc done'
     
     # create dictionary of words with number of documents they appeared in
-    redu = reduce(do_count2, sets)
+    redu = reduce(do_count3, sets)
 
     # create data frames from dictionaries d and w
     # merge to same dataframe and do analysis

@@ -11,8 +11,8 @@ s_words = stopwords.words('english')
 stemmer = SnowballStemmer('english')
 #s = ' '.join(( stemmer.stem(i) for i in s.split() ))
 
-
-def txt_match(in_file, doc, dest_path) :
+i = 0
+def txt_match(in_file, doc, dest_path, junk) :
     global i
     i += 1
 
@@ -21,7 +21,7 @@ def txt_match(in_file, doc, dest_path) :
  
     dest_file = dest_path + doc
 
-    with io.open(dest_file+title, 'w', encoding='utf8') as clean_txt :
+    with io.open(dest_file, 'w', encoding='utf8') as clean_txt :
         print 'saving to ', clean_txt.name
         clean_txt.write(unicode(s)+'\n')
     clean_txt.closed
@@ -49,7 +49,7 @@ def main(argv):
     if dest_path[len(dest_path)-1] != '/' :
         dest_path += '/'
 
-    map(lambda x : txt_match(in_path, x, dest_path), os.listdir(in_path))
+    map(lambda x : txt_match(in_path, x, dest_path, junk), os.listdir(in_path))
     
     pass
 
