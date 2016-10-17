@@ -34,20 +34,14 @@ class UI(object) :
     def nextdoc(self) :        
         doc_num = raw_input('Enter article number: ')
         doc = Doc(doc_num, self.data) 
-            
-        print doc.doc.File.tolist()
         secs = doc.secs.File.tolist()
-        print secs
         return [doc,secs]
 
     def nextsec(self) :        
         sec_num = raw_input('Enter section number: ')
-        sec = doc.secs[](doc_num, self.data) 
-            
-        print doc.doc.File.tolist()
-        secs = doc.secs.File.tolist()
-        print secs
-        return [doc,secs]
+        sec = doc.get_sec(sec_num)
+        title = doc.sect_title(sec)
+        return [sec,title]
 
     def run(self) :
         docs = '\n'.join([i.name for i in self.pick_docs()])
@@ -61,13 +55,16 @@ class UI(object) :
 
             if command == 'help' : helpme(); break
             elif command == 'docs' : print docs
-            elif command == 'pickdoc' :  doc = nextdoc()[0];
+            elif command == 'pickdoc' :  
+                doc = nextdoc()[0]
+                print doc.get_file() doc.File.tolist()
+                print doc.get_secfiles() secs.File.tolist()
             elif command == 'secs' :
                 if doc == '' :
                     print 'document not selected'
                     break
                 print ['%s %s\n'%(i,doc.sect_title(i)) for i in doc[1]]
-            elif command == 'picksec' : 
+            elif command == 'picksec' : nextsec()
             elif command == 'exit' : sys.exit();
             elif command == '' : break
 
@@ -75,8 +72,6 @@ class UI(object) :
             doc_num = raw_input('Enter article number: ')
             doc = Doc(doc_num, self.data) 
             
-            print doc.doc.File.tolist()
-            print doc.secs.File.tolist()
 
             topic_list = doc.best_topics(self.n_topics)
             print 'top %d topics are '%self.n_topics, topic_list
