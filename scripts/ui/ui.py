@@ -40,16 +40,15 @@ class UI(object) :
     def pick_docs(self) :
         return (open(self.doc_file+self.files[random.randrange(len(self.files))]) for f in xrange(self.n_docs))
 
-    def nextdoc(self) :        
-        doc_num = raw_input('Enter article number: ')
+    def nextdoc(self,doc_num) :        
         doc = d.Doc(doc_num, self.data) 
         return doc
 
-    def nextsec(self) :        
-        sec_num = raw_input('Enter section number: ')
-        sec = doc.get_sec(sec_num)
-        title = doc.sec_title(sec)
-        return [sec,title]
+#NOT WORKING!!!
+#    def nextsec(self, doc,sec_num) :        
+#        sec = doc.get_sec(sec_num)
+#        title = doc.sec_title(sec)
+#        return [sec,title]
 
 
     def run(self) :
@@ -57,6 +56,7 @@ class UI(object) :
         print docs
        
         doc = ''
+        sec_num = ''
         self.helpme()
         while True :
             command = raw_input('what to do?') 
@@ -68,7 +68,8 @@ class UI(object) :
                 print docs
                 continue
             elif command == 'pickdoc' :  
-                doc = self.nextdoc()
+                doc_num = raw_input('Enter article number: ')
+                doc = self.nextdoc(doc_num)
                 print doc.get_doc_file()
                 print doc.get_secs_files()
                 continue
@@ -76,17 +77,19 @@ class UI(object) :
                 if doc == '' :
                     print 'document not selected'
                     continue                  
-                print ['%s %s\n'%(i,doc.sec_title(i)) for i in doc.get_sec_files()]
+                print '\n'.join(['%s %s'%(i, doc.get_sec_title(i)) for i in doc.get_secs_files()])
                 continue
             elif command == 'picksec' : 
-                self.nextsec()
+                sec_num = raw_input('Enter section number: ')
+#                self.nextsec(doc,sec_num)
+                print '%s %s'%(sec_num, doc.get_sec_title(sec_num))
                 continue
             elif command == 'topics' : 
                 doc_topic_list = doc.get_doc_topics(self.n_topics)
                 print 'top %d topics are '%self.n_topics, doc_topic_list
                 continue
             elif command == 'sectop' : 
-                sec_topic_list = doc.get_sec_topics(self.n_topics)
+                sec_topic_list = doc.get_sec_topics(sec_num, self.n_topics)
                 print 'top %d topics are '%self.n_topics, sec_topic_list
                 continue
             elif command == 'dockeys' : 

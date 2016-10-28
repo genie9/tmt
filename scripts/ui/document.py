@@ -26,11 +26,11 @@ class Doc(object) :
         return self.doc.File.tolist()
 
     def get_secs_files(self) :
-        return self.secs.File.tolist()
+        return self.secs.File.values
 
     def get_doc_topics(self, num) :
         topics = self.doc.iloc[0,1:].sort_values(ascending=False)
-        topics = map(int,topics.index.values)
+        topics = map(int,topics.index.values[:num])
         return topics
     
 #    # how to choose best topics???
@@ -41,11 +41,11 @@ class Doc(object) :
         
     def get_sec_title(self, file_num) :
         t = self.data.titles
-        return t[t.File==file_num].Title
+        return str(t[t.File==file_num].Title.values).strip('[]')
 
-    def get_sec_topics(self, num) :
-        topics = self.secs.iloc[0,1:].sort_values(ascending=False)
-        topics = map(int,topics.index.values)
+    def get_sec_topics(self, sec, num) :
+        topics = self.secs[self.secs.File==sec].iloc[0,1:].sort_values(ascending=False)
+        topics = map(int,topics.index.values[:num])
         return topics
     
 #    def get_best_sec_topics(self, num) :

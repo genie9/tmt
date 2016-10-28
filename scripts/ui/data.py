@@ -51,7 +51,8 @@ class Data(object) :
 
     # 
     def sec_topic_keys(self, topic_list) :
-        #(for i in list_topics)
+        if type(topic_list) != list :
+            topic_list = [topic_list]
         k = self.sec_keys
         return [k[k['topic'].isin(topic_list)].get_value(topic,'key_w') for topic in topic_list]
 
