@@ -1,0 +1,16 @@
+.deps
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+config.cache
+config.h
+config.hin
+config.log
+config.status
+configure
+fit.log
+soundfit.par
+stamp-h
+stamp-h1
+*.tmp
