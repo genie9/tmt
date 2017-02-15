@@ -91,6 +91,8 @@ def main(argv):
 #    print_bigrams(bigram, 'file')    
     
     [save_docs(f.name,bigram[d],stem,dest_path_full) for f,d in read]
+    
+    print 'full articles done, preparing to process sections.'
 
     files_sec = subprocess.check_output(["find", in_path_sec, "-maxdepth", "2", "-mindepth", "2", "-type", "f"])
     

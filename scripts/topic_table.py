@@ -79,7 +79,7 @@ def color_cells(tds) :
 
 #path = '/data/mallet_tests/from_mallet/thursday_compostion.txt'
 def df2html(input_path, dest_path, topics) :
-    mega_list = pd.read_csv(input_path, delimiter='\t', names=['year','File']+[str(i) for i in range(topics)], na_values=[''], engine='c')
+    mega_list = pd.read_csv(input_path, skiprows=1, delimiter='\t', names=['year','File']+[str(i) for i in range(topics)], na_values=[''], engine='c')
     mega_list.File= mega_list.File.str[5:]
     print mega_list.iloc[0:7, 0:4]
     print 'dataframe created'
@@ -97,6 +97,10 @@ def df2html(input_path, dest_path, topics) :
     mega_list.set_index(mega_list.File, inplace=True)
 #    print mega_list.iloc[0:7, 0:4]
     print 'years added'
+
+    mega_list.sort_values('File', inplace=True)
+    print mega_list.iloc[0:7, 0:4]
+    print 'sorted'
 
     years = mega_list.year.unique()
     for y in years :

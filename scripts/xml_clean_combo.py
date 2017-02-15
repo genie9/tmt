@@ -28,8 +28,8 @@ import datetime as date
 today =  date.date.today().strftime('%m%d%y')
 
 # list of article or their parts IDs and matching title
-title_list_main = 'article,title\n'
-title_list = 'article,title\n'
+#title_list_main = '#article,title\n'
+title_list = '#article,title\n'
 
 # errorfile
 error_file = '/data/mallet_tests/support/aaa_' + today + '_errorfiles.txt'
@@ -154,7 +154,7 @@ def xml_open(in_file, dest_path, stem) :
         if keep == True :
             title_list_main += article+','+title_main+'\n'
         
-            # combain full articles
+            # combain full article from sections
             text = reduce(lambda x,y : x+' '+y, map(lambda x : x[1], secs))
             
             dest_file = dest_path + '/' + article + '.txt'
