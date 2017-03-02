@@ -1,120 +1,41 @@
-from bs4 import BeautifulSoup as Soup
-import json
-import sys, os, io
-from itertools import islice
-import datetime
+import xml.sax
+import sys, io
 
 
-def xml_open(in_file, dest_file) :
-#    size = os.path.getsize(in_file)
-    try :
-        with open(in_file, 'r') as meta :
-            print meta
+arxiv_id = []
+ar_id = ''
 
-            meta.readline() 
-            meta.readline() 
+class metadata_reader(xml.sax.ContentHandler):
 
-            parsed = [] 
-            j = 0
-            k = 0
-            stop = 0
+    def __init__(self) :
+        self.content = None
+        self.article = None
+        self.count = 0
+        self.count_a = 0
 
-            while stop == 0 :
-                to_read = ''
+    def startElement(self, name, attrs) :
+        self.content = ""
 
-                for i in range(0,11): 
-                    tmp = meta.readline()
+        if name == 'article' :
+            print '%d/%d'%(self.count_a,self.count)
 
-                    if tmp == '' or tmp == '\n' :
-                        stop = 1
-                        print 'must end after that'
-                        break
+    def characters(self, c) :
+        self.content = c        
 
-                    to_read += tmp  #list(islice(meta, i, j) )
+    def endElement(self, name) :
+        global arxiv_id, ar_id
 
+        if name == 'article' :
+            self.count += 1
 
-                res = test2( Soup(str(to_read), 'xml') )
+        elif name == 'categories' :
+           if self.content.find('cs') == 0 :
+                arxiv_id.append(ar_id.replace('/',''))
+                print arxiv_id[self.count_a]
+                self.count_a += 1
 
-                if res == 0 :
-                    k += 1
-                    print 'stop = ', stop
-                    print res, 'bad part #', k
-                
-                elif res[0] == 1 or stop == 1 :
-                    if stop == 1 and parsed != [] : 
-                        write_dest(dest_file, j, parsed) 
-                        print 'vika stop'
-                        return
-                    parsed.append(res[1])
-                    j += 1
-                    print 'red in ', j, ' parts'
-
-                    if j % 1000 == 0 : 
-                        write_dest(dest_file, j, parsed) 
-                        parsed = []
-                        print 'empty?? ', parsed
-        meta.closed
-    except IOError :
-        print in_file, ' not found'
-        return 
-    
-
-def  write_dest(dest_file, j, parsed) :
-    try :
-        with io.open(dest_file + '_' + str(j), 'w', encoding='utf8') as data :
-            data.write(unicode(json.dumps(parsed, ensure_ascii=False)))  #+ u"\u000A") # '\n')
-        data.closed
-    except IOError :
-        print dest_file,' not found'
-        return 
-
-
-
-def test2(soup) :    
-    cs = 0    
-    if soup.find('categories') != None and soup.categories.string.find('cs') == 0 :
-        cs = 1
-        arxiv_id = soup.id.get_text().replace('/', '')
-        url = soup.url.get_text()
-        
-        contents = {
-            'id': arxiv_id,
-            'url': url
-        }
-
-        return (cs, contents)
-    else : return 0
-
-
-def test() :
-    cs = 0    
-    if soup.find('categories') != None and soup.categories.string.find('cs') == 0 :
-        cs = 1
-        arxiv_id = soup.id.get_text().replace('/', '')
-        arxiv_id = arxiv_id[len(arxiv_id)-9 : len(arxiv_id)]
-
-        title = soup.title.get_text()
-        author = soup.author.get_text()
-        url = soup.url.get_text()
-
-        dated = soup.updated.get_text()
-        if dated != 'NA' :
-            dated = datetime.datetime.strptime(dated, "%Y-%m-%d")
-         
-        created = soup.created.get_text()
-        created = datetime.datetime.strptime(created, "%Y-%m-%d")
-        
-        contents = [{'id': arxiv_id,
-                'title': title,
-                'author': author,
-                'created': created,
-                'updated': dated,
-                'url': url
-                 }]
-
-#      df = df.append(contents, ignore_index=True)
-        return (cs, year, contents)
-    else : return 0
+        elif name == 'id': 
+            ar_id = self.content
 
 
 def main(argv):
@@ -122,11 +43,14 @@ def main(argv):
         print '**Usage ', argv[0], ': metadata file, output file.'
         sys.exit()
 
-    in_file = argv[1]
-    dest_file = argv[2]
+    parser = xml.sax.make_parser()
+#    parser.satFeature(xml.sax.handler.feature_namespacs, 0)
+    parser.setContentHandler(metadata_reader())
+    parser.parse(argv[1])
 
-    xml_open(in_file, dest_file)
-    
+    with open(argv[2], 'w') as a_file :
+        a_file.write('\n'.join(arxiv_id))
+
     pass
 
 if __name__ == "__main__":

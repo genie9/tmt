@@ -3,9 +3,9 @@ from pandas import read_csv
 import os, glob, json
 
 
-path = "/home/evly/tmt/bigdata/"
+path = '/data/pulp/support/'
 
-mega_list = pd.read_csv(path+'find', delimiter='/', names=['A','path0','path1','path2','path3', 'FILE'], na_values=[''], dtype=object)
+mega_list = pd.read_csv('/home/evly/tmt/bigdata/find', delimiter='/', names=['A','path0','path1','path2','path3', 'FILE'], na_values=[''], dtype=object)
 mega_list = mega_list.drop('A', axis=1)
 
 # creating id-column for matching
@@ -38,15 +38,14 @@ print 'first.3 done'
 print mega_list.shape
 
 # combining data with interesting id numbers
-all_arxiv = glob.glob(os.path.join(path+'arxiv_meta/', "*"))
-arxiv_list = pd.concat(pd.read_json(f, dtype=object) for f in all_arxiv) 
+arxiv_list = pd.read_csv(path+'meta_arxiv.txt', delimiter='\n', names=['id'], dtype=object)
 
 print 'second done, interesting ids:' 
 print arxiv_list.shape
 
 # comparing interesting id numbers with available 
 new_list = pd.merge(mega_list, arxiv_list, left_on='id', right_on='id', how='inner')
-new_list = new_list[['id', 'path', 'url']]
+new_list = new_list[['id', 'path']]
 
 print 'third done, ids found:' 
 print new_list.shape
