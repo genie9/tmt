@@ -31,9 +31,11 @@ today =  date.date.today().strftime('%m%d%y')
 #title_list_main = 'article,title\n'
 title_list = '#article,title\n'
 
-# errorfile
+# destination files
 #error_file = '/data/mallet_tests/support/aaa_' + today + '_errorfiles.txt'
 error_file = '/data/pulp/support/errorfiles_' + today + '.txt'
+dest_path_sec = ''
+dest_path_full = ''
 
 # Alan's compilation of english nonbasic words
 english = open('/home/evly/tmt/english.txt')
@@ -60,6 +62,7 @@ def xml_clean(s, stem) :
    
     # to find compound words uncomment below and comment other re.sub...
 #    s = re.sub(r'\s+-', ' ', re.sub('[^a-z\-]', ' ', re.sub(r'-\s+', '', s.text.lower().strip())))
+
     s = re.sub(r'\s+-', ' ', re.sub('[^a-z]', ' ', s.text.lower().strip()))
     
     s = [ i if len(i) > 1 else '' for i in s.split() ]
@@ -86,123 +89,115 @@ def do_title(s) :
     t = s.find('title')
     if t not in [None, -1]:
         title = (re.sub('[^a-zA-Z0-9\-]', ' ', t.text))
+#       print title
     return title
 
 
 i = 0
 keep = False
-def xml_open(in_file, dest_path, stem) :
-    global i, today, keep
+def xml_open(in_file, stem) :
+    global i, today, keep, dest_path_full
     keep = False
     text_len = 0
-#    dest_path = dest_path+'/'+today
-    
-    print in_file
-    
 
-    def save_secs(s, sec_len, title, sec_num, text_len) :
-        global title_list, keep
-        
-        dest_path_sec = dest_path+'/secs/'
-        text_len += sec_len
-        if sec_len > 10 :
-            keep = True
-            if not os.path.exists(dest_path_sec) :
-                os.makedirs(dest_path_sec)
-            dest_file = dest_path_sec+article+'_'+str(sec_num)+'.txt'
-
-            title_list += article+'_'+str(sec_num)+','+title+'\n'
-            try :
-                with io.open(dest_file, 'w', encoding='utf8') as ifile :
-                    ifile.write(s+'\n')
-                ifile.closed
-            except IOError :
-                print dest_file,' not found'
-                return
-        else :
-            write_error(article + '_' + str(sec_num), sec_len)
-        print keep
-    
-
-    # opening file and extracting file ID/article
+    # opening file and extracting file's ID/article
     try :
         with open(in_file, 'r') as texml :
-            print 'processing ', texml
-            
-            s = texml.name.rfind('/')
-            e = texml.name.find('.xml', s)
-            article = texml.name[s+1:e]
+            print 'processing ', texml           
+            article = texml.name.split('/')[-1].split('.xml')[0]
             soup = Soup(texml.read(), 'lxml')
-            print 'soup done'
+            print '%s soup done'%article
         texml.closed
-        
-        # find main title of article    
-#        title_main = do_title(soup)
-
-        # remove math-tags
-        [ x.extract() for x in soup.findAll('math')]
-        
-        # find abstract
-        a = soup.find('abstract')
-        
-        # find sections
-        s = soup.findAll('section') 
-
-        # if not even a paragraph add to error
-        if len(s) == 0 :
-            s = soup.findAll('paragraph')
-            if len(s) == 0 :
-                write_error(article, '-1')
-                return
-
-        # clean sections and find corresponding titles
-        secs = map(lambda sec : xml_clean(sec,stem), s)
-        print 'cleaning done'
-        
-        # if abstract found process it separately
-        if a != None:
-            a = xml_clean(a,stem)
-            a[0] = 'abstr'
-            secs.insert(0, a)
-
-        # save sections
-        map(lambda x : save_secs(x[1], len(x[1].split()),x[0], secs.index(x), text_len), secs)       
-
-        # FULL ARTICLE: adding main title to main title list and saving full article
-        print keep
-        if keep == True :
-#            title_list_main += article+','+title_main+'\n'
-        
-            # combain full article from sections
-            text = reduce(lambda x,y : x+' '+y, map(lambda x : x[1], secs))
-            dest_path_full = dest_path + '/full/'
-            if not os.path.exists(dest_path_full) :
-                os.makedirs(dest_path_full)
-            dest_file = dest_path_full + article + '.txt'
-            try :
-                with io.open(dest_file, 'w', encoding='utf8') as ifile :
-                    ifile.write(text+'\n')
-                ifile.closed
-            except IOError :
-                print dest_file,' not found'
-                return
-        else :
-            write_error(article, str(text_len))
-             
-        print 'article %s processed, split in %d files' % (article, len(secs))
-        i += 1
-        print i
-
     except IOError :
         print in_file,' not found'
         return 
+    
+    # find main title of article    
+#        title_main = do_title(soup)
+
+    # remove math-tags
+    [ x.extract() for x in soup.findAll('math')]
+    
+    # find abstract
+    a = soup.find('abstract')
+    
+    # find sections
+    s = soup.findAll('section') 
+
+    # if not even a paragraph add to error
+    if len(s) == 0 :
+        s = soup.findAll('paragraph')
+        if len(s) == 0 :
+            write_error(article, '-1')
+            return
+
+    # clean sections and find corresponding titles
+    secs = map(lambda sec : xml_clean(sec,stem), s)
+    print 'cleaning done'
+    
+    # if abstract found process it separately
+    if a != None:
+        a = xml_clean(a,stem)
+        a[0] = 'abstr'
+        secs.insert(0, a)
+
+    # save sections
+    map(lambda x : save_secs(x[1], len(x[1].split()), x[0], secs.index(x), text_len, article), secs)       
+
+    # FULL ARTICLE: (adding main title to main title list and) saving full article
+#    print keep
+    if keep == True :
+#            title_list_main += article+','+title_main+'\n'
+    
+        # combain full article from sections
+        text = reduce(lambda x,y : x+' '+y, map(lambda x : x[1], secs))
+
+        dest_file = dest_path_full + article + '.txt'
+
+        try :
+            with io.open(dest_file, 'w', encoding='utf8') as ifile :
+                ifile.write(text+'\n')
+            ifile.closed
+        except IOError :
+            print dest_file,' not found'
+            return
+    else :
+        write_error(article, str(text_len))
+         
+    print 'article %s processed, split in %d files' % (article, len(secs))
+
+    i += 1
+    print i
+
+
+def save_secs(s, sec_len, title, sec_num, text_len, article) :
+    global title_list, keep, dest_path_sec
+    
+    text_len += sec_len
+
+    if sec_len > 10 :
+        keep = True
+        
+        dest_file = dest_path_sec+article+'_'+str(sec_num)+'.txt'
+        title_list += article+'_'+str(sec_num)+','+title+'\n'
+
+        try :
+            with io.open(dest_file, 'w', encoding='utf8') as ifile :
+                ifile.write(s+'\n')
+            ifile.closed
+        except IOError :
+            print dest_file,' not found'
+            return
+    else :
+        write_error(article + '_' + str(sec_num), sec_len)
+#    print keep
 
 
 def write_error(file_name, size) :
     try :
         with io.open(error_file, 'a', encoding='utf8') as erfile :
             erfile.write('%s, %s\n' % (unicode(file_name),size))
-            print '%s added to error file' % file_name
+            print >> sys.stderr, '%s added to error file' % file_name
         erfile.closed
     except IOError :
         print 'file not found'
@@ -214,6 +209,7 @@ def write_error(file_name, size) :
 
 
 def main(argv):
+    global dest_path_sec, dest_path_full
 
     if len(argv) < 3 :
         print '**Usage: ', argv[0], '<input path> <output path> [stem]'
@@ -230,17 +226,30 @@ def main(argv):
             print "**Usage:  ", argv[0], "<input path> <output path> [stem].\n\tDid u mean 'stem'?"
             sys.exit()
 
+    if in_path[-1] != '/' :
+        in_path += '/'
+    
     if not os.path.exists(dest_path) :
         os.makedirs(dest_path)
 
-    if dest_path[len(dest_path)-1] != '/' :
+    if dest_path[-1] != '/' :
         dest_path += '/'
 
-    map(lambda doc : xml_open(in_path+doc, dest_path, stem), os.listdir(in_path)) 
+    dest_path_sec = dest_path+'secs/'
+
+    if not os.path.exists(dest_path_sec) :
+        os.makedirs(dest_path_sec)
+
+    dest_path_full = dest_path + 'full/'
+    
+    if not os.path.exists(dest_path_full) :
+        os.makedirs(dest_path_full)
+    
+    map(lambda doc : xml_open(in_path+doc, stem), os.listdir(in_path)) 
 
     global title_list
 
-    with io.open('/data/pulp/support/'+'sectons'+'_'+today+'_title.txt','a', encoding='utf8') as title_file :
+    with io.open('/data/pulp/support/'+'sections'+'_'+today+'_title.txt','a', encoding='UTF-8') as title_file :
         title_file.write(title_list)
     title_file.closed
 
