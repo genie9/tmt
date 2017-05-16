@@ -58,13 +58,12 @@ def do_count3(l,m) :
 
 def main(argv):
 
-    if len(argv) != 4 :
-        print '**Usage: ', argv[0], '<input path> <output path sorted by docs> <output path sorted by words>'
+    if len(argv) != 3 :
+        print '**Usage: ', argv[0], '<input path> <output path sorted by docs>'
         sys.exit()
 
     in_path = argv[1]
-    dest_path_doc = argv[2]
-    dest_path_word = argv[3]
+    dest_path = argv[2]
 
     files = os.listdir(in_path)
     size = len(files)
@@ -95,10 +94,7 @@ def main(argv):
     df['doc_cov'] = df.apply(lambda row : float(int(row['doc_freq']))/float(size)*100, axis=1)
 
     df.sort_values(by='doc_freq',inplace =True)
-    df.to_csv(dest_path_doc)
-
-    df.sort_values(by='word_freq',inplace =True)
-    df.to_csv(dest_path_word)
+    df.to_csv(dest_path)
 
     pass
 

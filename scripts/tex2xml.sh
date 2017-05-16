@@ -2,101 +2,149 @@
 
 check(){
     local pid=$1
-    waited=0
+    time_el=0
 
     while [ -d /proc/$pid ] ; do
-        if [ "$(ps -F ${pid}|tr -s ' '|cut -d ' ' -f6|tail -n1)" -gt "3000000" ] || [ $waited -gt "300" ]; then 
-            printf $doc"\nkilled\n" >> /home/evly/tmt/bigdata/latexml_fatalerrors.txt
+        mem="$(ps -F ${pid}|tr -s ' '|cut -d ' ' -f6|tail -n1)"
+        if [ $mem -gt "3000000" ]; then 
             kill -9 ${pid}
+#            if [[ $? == 0 ]]; then
+            echo -e $doc'\tkilled, memory' >> /home/evly/tmt/bigdata/latexml_fatalerrors.txt
+            return
+#            else
+#            fi
+        elif [ $time_el -gt "300" ]; then 
+            kill -9 ${pid}
+            echo -e $doc'\tkilled, time'>> /home/evly/tmt/bigdata/latexml_fatalerrors.txt
             return
         else 
             sleep 30
-            waited=$(($waited+30))
+            time_el=$(($time_el+30))
         fi
     done
 } 
 
-tar_path=/data/arXiv_Src_1504_1702/arXiv_src_1701_*
-sorsa_path=/data/pulp/latexml/arXiv-
+fatal(){
+    local doc=$1
 
-rm /home/evly/tmt/bigdata/latexml_errors.txt /home/evly/tmt/bigdata/latexml_fatalerrors.txt
-rm -r ${sorsa_path}{17,17-src}
+    fatal=$(grep -q fatal /home/evly/tmt/bigdata/latexml_errors.txt)
+    if [ -n "$fatal" ]; then
+        echo "fatal error found"
+        echo -e $doc'\t'$fatal >> /home/evly/tmt/bigdata/latexml_fatalerrors.txt
+    fi
+}
+
+process() {
+    local doc=$1
+    local done_mm=$2
+
+    # transform latex files to xml and move to source folder
+    if [[ $(file ${doc}) == *"TeX"* ]]; then
+        echo tex file found: ${doc}
+
+        latexml --includestyles ${doc} > ${doc}.xml 2> /home/evly/tmt/bigdata/latexml_errors.txt & pid=$!
+        check $pid 
+        fatal $doc                 
+        mv ${doc}.xml ${done_mm}/ && rm ${doc}
+
+    # get folders and untar
+    elif [[ $(file $doc) == *"POSIX"* ]]; then
+        echo "tar file found: ${doc}"
+
+        mv ${doc} ${doc}.tar && mkdir ${doc} && tar xf ${doc}.tar -C ${doc} && rm ${doc}.tar
+
+        # latex to xml and move to source folder
+        for d in ${doc}/*; do
+#                    if [[ $(file ${d}) == *"TeX"* ]]; then
+            if [ ${d: -3} == "tex" ]; then
+                echo "tex file found: ${d}"
+                latexml --includestyles "${d}" > "${d}".xml 2> /home/evly/tmt/bigdata/latexml_errors.txt & pid=$!
+                check $pid
+                fatal $doc
+            fi
+        done
+
+        mv ${doc} ${done_mm}/ 
+
+    elif [[ $(file ${doc}) == *": data"* ]]; then
+        echo data file found: ${doc}
+
+        latexml --includestyles ${doc} > ${doc}.xml 2> /home/evly/tmt/bigdata/latexml_errors.txt & pid=$!
+        check $pid 
+        fatal $doc                 
+        mv ${doc}.xml ${done_mm}/ && rm ${doc}
+
+    else
+        echo -e $doc'\t'$(echo $(file $doc)|cut -d':' -f2) >> /home/evly/tmt/bigdata/latexml_fatalerrors.txt
+        mv $doc ${done_mm}/nonxml/
+    fi
+}
+
+
+tar_path=/data/arXiv_Src_1504_1702
+sorsa_path=/data/arXiv-
+mkfifo tmp_fifo
+
+counter=0
+
+#rm /home/evly/tmt/bigdata/latexml_errors.txt /home/evly/tmt/bigdata/latexml_fatalerrors.txt
+rm -rf ${sorsa_path}15-src/1505
 
 if [ ! -d "${sorsa_path}" ]; then
         mkdir -p ${sorsa_path}
     fi
 
-for tarzan in ${tar_path}; do
+for tarzan in ${tar_path}/*; do
     # get year of tarball
-    yy=$(echo ${tarzan}|cut -d'_' -f6|cut -c1-2)
-    src_yy=${sorsa_path}${yy}
-    echo sorsa ja vuosi ${src_yy}
+    mm=$(echo ${tarzan}|cut -d'_' -f6) 
+    echo "tarball's month $mm"
 
-    # create folders per year for source files
-    if [ ! -d ${src_yy} ]; then
-        mkdir ${src_yy} ${src_yy}-src
-    fi
-    
-    echo  extracting ${tarzan} to ${src_yy}-src
-    tar xf ${tarzan} -C ${src_yy}-src
-#    cp ${src_yy}-zipped ${src_yy}-zipped_copy
+    if [ $mm -ne "1504" ]; then
+        yy=$(echo ${tarzan}|cut -d'_' -f6|cut -c1-2)
+        src_yy=${sorsa_path}${yy}
+        echo sorsa ja vuosi ${src_yy}
+        src_mm=${src_yy}-src/${mm}
+        done_mm=${src_yy}/${mm}
+        echo "sorsa ${src_mm}, done ${done_mm}"
 
-    # extract gziped files
-    for month in ${src_yy}-src/*; do
-        mm=$(echo ${month}|cut -d'/' -f6)
-
-        src_mm=${src_yy}/${mm}
-        echo parsing ${month} : year ${yy} and month ${mm} and together ${src_mm}
-
-        echo extracting gzip files from ${month}
-        yes n|gunzip ${month}/*.gz
+        echo creating folders per year and month for source and files
+        if [ ! -d ${src_mm} ] && [ ! -d ${done_mm} ]; then
+            mkdir -p ${src_mm} ${done_mm}/pdfss ${done_mm}/nonxml
+        fi
         
-        echo creating folder for pdf files to ${src_mm}/pdfss and transfering pdf files
-        mkdir -p mkdir ${src_mm}/pdfss
-        mv ${month}/*.pdf ${src_mm}/pdfss/
+        echo  extracting ${tarzan} to ${src_yy}-src
+        tar xf ${tarzan} -C ${src_yy}-src
 
-        for doc in ${month}/*; do
-            # transform latex files to xml and move to source folder
-            if [[ $(file ${doc}) == *"TeX"* ]]; then
-                echo tex file found: ${doc}
-#                arxiv_id=$(echo ${doc} | cut -d'/' -f6)            
-#                echo arXiv id ${arxiv_id}
+        echo extracting gzip files from ${src_mm}
+        gunzip ${src_mm}/*.gz
+        
+        echo transfering pdf files
+        mv ${src_mm}/*.pdf ${done_mm}/pdfss/
 
-                latexml --includestyles ${doc} > ${doc}.xml 2> /home/evly/tmt/bigdata/latexml_errors.txt & pid=$!
-                check $pid 
-                 
-                fatal=$(grep -q fatal /home/evly/tmt/bigdata/latexml_errors.txt)
-                if [ -n "$fatal" ]; then
-                    echo "fatal error found"
-                    printf $doc"\n"$fatal"\n" >> /home/evly/tmt/bigdata/latexml_fatalerrors.txt
+        for doc in ${src_mm}/*; do
+            arxiv_id=$(echo ${doc} | cut -d'/' -f5)            
+            echo arXiv id ${arxiv_id}
+
+            if [ -e ${done_mm}/${arxiv_id}.xml ] || [ -e  ${done_mm}/${arxiv_id}/ ]; then
+                echo "file $doc exists"
+                rm $doc
+            else
+                echo "processing $doc, count $counter"
+                
+                if [ $counter -lt 10 ]; then # we are under the limit
+                    { process $doc $done_mm; echo 'done' > tmp_fifo; } &
+                    let $[counter++];
+                else
+                    read x < tmp_fifo # waiting for a process to finish
+                    { process $doc $done_mm; echo 'done' > tmp_fifo; } &
                 fi
-
-                mv ${doc}.xml ${src_mm}/
-
-            # get folders and untar
-            elif [[ $(file $doc) == *"POSIX"* ]]; then
-                echo "tar file found: ${doc}"
-
-                mv ${doc} ${doc}.tar && mkdir ${doc} && tar xf ${doc}.tar -C ${doc}
-
-                # latex to xml and move to source folder
-                for d in ${doc}/*; do
-#                    if [[ $(file ${d}) == *"TeX"* ]]; then
-                    if [ ${d: -3} == "tex" ]; then
-                        echo "tex file found: ${d}"
-                        latexml --includestyles "${d}" > "${d}".xml 2> /home/evly/tmt/bigdata/latexml_errors.txt & pid=$!
-                        check $pid
-
-                        fatal=$(grep -q fatal /home/evly/tmt/bigdata/latexml_errors.txt)
-                        if [ -n "$fatal" ]; then
-                            echo "fatal error found"
-                            printf $doc"\n"$fatal"\n" >> /home/evly/tmt/bigdata/latexml_fatalerrors.txt
-                        fi
-                    fi
-                done
-
-                mv ${doc} ${src_mm}/
             fi
         done
-    done
+        if [ $counter -gt 0 ]; then
+            cat tmp_fifo > /dev/null # let all the background processes end
+            counter=0
+        fi
+    fi
 done
+
+rm tmp_fifo
