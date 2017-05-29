@@ -25,7 +25,7 @@ class metadata_reader(xml.sax.ContentHandler):
 #            print '%d/%d'%(self.count_a,self.count)
 
     def characters(self, c) :
-        self.content = c        
+        self.content = xml.sax.saxutils.escape(c,entities={'"'})        
 
     def endElement(self, name) :
         global arxiv_id, ar_id, cs, categ_re

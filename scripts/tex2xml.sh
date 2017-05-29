@@ -108,7 +108,7 @@ for tarzan in ${tar_path}/*; do
         echo "sorsa ${src_mm}, done ${done_mm}"
 
         echo creating folders per year and month for source and files
-        if [ ! -d ${src_mm} ] && [ ! -d ${done_mm} ]; then
+        if [ ! -d ${src_mm} ] || [ ! -d ${done_mm} ]; then
             mkdir -p ${src_mm} ${done_mm}/pdfss ${done_mm}/nonxml
         fi
         
