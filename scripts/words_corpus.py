@@ -58,17 +58,19 @@ def do_count3(l,m) :
 
 def main(argv):
 
-    if len(argv) != 3 :
-        print '**Usage: ', argv[0], '<input path> <output path sorted by docs>'
+    if len(argv) != 4 :
+        print '**Usage: ', argv[0], '<working directory> <preprocessed article directory> \
+                <corpus file>'
         sys.exit()
 
-    in_path = argv[1]
-    dest_path = argv[2]
+    root = argv[1]
+    preproc = argv[2]
+    dest = argv[3]
 
-    files = os.listdir(in_path)
+    files = os.listdir(preproc)
     size = len(files)
     
-    opened = (open(in_path+f) for f in files)
+    opened = (open(preproc+f) for f in files)
     read = (f.read().split() for f in opened)
 
     # create table of dictionaries with word count for each document 
@@ -84,7 +86,7 @@ def main(argv):
 
     # create data frames from dictionaries d and w
     # merge to same dataframe and do analysis
-    # save files: sorted by doc coverage percent, sorted by word count in corpus
+    # save files: sorted by doc coverage percent
 
     df_1 = pd.DataFrame(d,index=['doc_freq'])
     df_2 = pd.DataFrame(wc,index=['word_freq'])
@@ -94,7 +96,8 @@ def main(argv):
     df['doc_cov'] = df.apply(lambda row : float(int(row['doc_freq']))/float(size)*100, axis=1)
 
     df.sort_values(by='doc_freq',inplace =True)
-    df.to_csv(dest_path)
+    df.index.name = 'word'
+    df.to_csv(dest)
 
     pass
 

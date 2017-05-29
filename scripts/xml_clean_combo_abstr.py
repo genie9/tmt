@@ -9,7 +9,6 @@ import string, re
 import sys, os, io, timeit
 import enchant
 import datetime as date
-#from multiprocessing import Pool
 
 
 # Takes cl arguments for input and output paths.
@@ -17,7 +16,7 @@ import datetime as date
 # cleans xml formating, math-tags, stop words and punctuation.
 # Cheks if word is in vocalaburary or not misspeled.
 # Processes with stemmer.
-# If 'split' is given as argument, processed file is separeted between tags and saved in individual files
+# Files are separeted between tags and saved in individual files
 # to destination path named by original article id and incremental count as txt files.
 
 
@@ -27,18 +26,22 @@ import datetime as date
 
 today =  date.date.today().strftime('%m%d%y')
 
-# list of article or their parts IDs and matching title
-#title_list_main = 'article,title\n'
-title_list = '#article,title\n'
-
 # destination files
-#error_file = '/data/mallet_tests/support/aaa_' + today + '_errorfiles.txt'
-error_file = '/data/pulp/support/errorfiles_' + today + '.txt'
 dest_path_sec = ''
 dest_path_full = ''
 
+# list of articles' sections ids and their titiles
+title_list = []
+# temporary title list per article to track duplicates
+tmp_titles = []
+# uncomment to save article titles
+#title_list_main = 'article,title\n'
+
+# list of error texts
+err_list = []
+
 # Alan's compilation of english nonbasic words
-english = open('/home/evly/tmt/english.txt')
+english = open('english.txt')
 wordz = set(english.read().split('\n'))
 #df_wordz = pd.Series(list(wordz))
 english.closed
@@ -50,54 +53,78 @@ enchant_dict_gb = enchant.Dict('en_GB')
 # nltk text processing helpers
 nltk.download('stopwords')
 s_words_nltk = set(stopwords.words('english'))
-s_words_evly = set(['also','thus','however','therefore','about','followed','following','follows','etc','always','among','amongst'])
-s_words = s_words_nltk.union(s_words_evly)
+# put here words to extend stopword list
+s_words_genie = set(['also','thus','however','therefore','about','followed','following','follows','etc','always','among','amongst'])
+s_words = s_words_nltk.union(s_words_genie)
 #s_words = pd.Series(list(s_words))
 
 stemmer = SnowballStemmer('english')
 
+# helpers: 
+# keeps track of number of written articles
+i = 0
+# holds information of article's cleaned sections cumulative word count,
+# used to check if article should be saved
+text_len = 0
+# minimum length of section to keep
+min_len = 0
+
 
 def xml_clean(s, stem) :
     title = do_title(s)
-   
+    if title == 0: 
+        print 'Duplicate found, section will not be recorded'
+        return ['','']
+
     # to find compound words uncomment below and comment other re.sub...
 #    s = re.sub(r'\s+-', ' ', re.sub('[^a-z\-]', ' ', re.sub(r'-\s+', '', s.text.lower().strip())))
 
     s = re.sub(r'\s+-', ' ', re.sub('[^a-z]', ' ', s.text.lower().strip()))
-    
+   
+    # keep words with legth over 1 char
     s = [ i if len(i) > 1 else '' for i in s.split() ]
     
     s = pd.Series(s)
-
     s = s[-s.isin(s_words)]
 
     non = s[-s.isin(wordz)].astype(np.object).str.cat(sep=' ')
-    non = ' '.join(( i for i in non.split() if enchant_dict_us.check(i) or enchant_dict_gb.check(i) ))
-
+    non = ' '.join(( i for i in non.split() if enchant_dict_us.check(i) \
+            or enchant_dict_gb.check(i) ))
     eng = s[s.isin(wordz)].astype(np.object).str.cat(sep=' ')
-
     s = eng+' '+non
 
-    if stem == True :
+    if stem == 'stem' :
         s = ' '.join( map(stemmer.stem, s.split()) )
-
+    
     return [title,s]
     
 
 def do_title(s) :
-    title = ''
+    global tmp_titles
+
     t = s.find('title')
-    if t not in [None, -1]:
-        title = (re.sub('[^a-zA-Z0-9\-]', ' ', t.text))
-#       print title
+
+    if t in [None, -1] :
+         return ''
+
+    title = (re.sub('[^a-zA-Z0-9\-]', ' ', t.text))
+    
+    # check for duplicate e.g. from other versions of document
+    if t.text.lower() in tmp_titles :
+        print 'possible duplicate {}'.format(title.lower())
+#        print 'sections titles {}'.format(tmp_titles)
+        return 0
+    
+    if t.text != '' :
+        tmp_titles.append(t.text.lower())
+
     return title
 
 
-i = 0
-keep = False
 def xml_open(in_file, stem) :
-    global i, today, keep, dest_path_full
-    keep = False
+    global i, text_len, tmp_titles
+
+    tmp_titles = []
     text_len = 0
 
     # opening file and extracting file's ID/article
@@ -113,7 +140,7 @@ def xml_open(in_file, stem) :
         return 
     
     # find main title of article    
-#        title_main = do_title(soup)
+    title_main = do_title(soup)
 
     # remove math-tags
     [ x.extract() for x in soup.findAll('math')]
@@ -138,25 +165,27 @@ def xml_open(in_file, stem) :
     # if abstract found process it separately
     if a != None:
         a = xml_clean(a,stem)
-        a[0] = 'abstr'
+        a[0] = 'Abstract'
         secs.insert(0, a)
 
     # save sections
-    map(lambda x : save_secs(x[1], len(x[1].split()), x[0], secs.index(x), text_len, article), secs)       
+    map(lambda x : save_secs(x[1], len(x[1].split()), x[0], secs.index(x), article), secs)       
 
     # FULL ARTICLE: (adding main title to main title list and) saving full article
-#    print keep
-    if keep == True :
-#            title_list_main += article+','+title_main+'\n'
+    if text_len >= min_len :
+
+        # uncomment to save article titles
+#        global title_list_main        
+#        title_list_main += article+','+title_main+'\n'
     
         # combain full article from sections
-        text = reduce(lambda x,y : x+' '+y, map(lambda x : x[1], secs))
+        text = title_main + reduce(lambda x,y : x+' '+y, map(lambda x : x[1], secs))
 
         dest_file = dest_path_full + article + '.txt'
 
         try :
             with io.open(dest_file, 'w', encoding='utf8') as ifile :
-                ifile.write(text+'\n')
+                ifile.write(text)
             ifile.closed
         except IOError :
             print dest_file,' not found'
@@ -165,43 +194,37 @@ def xml_open(in_file, stem) :
         write_error(article, str(text_len))
          
     print 'article %s processed, split in %d files' % (article, len(secs))
-
     i += 1
     print i
 
 
-def save_secs(s, sec_len, title, sec_num, text_len, article) :
-    global title_list, keep, dest_path_sec
+def save_secs(s, sec_len, title, sec_num, article) :
+    global title_list, tmp_titles, text_len, dest_path_sec
     
-    text_len += sec_len
-
-    if sec_len > 10 :
-        keep = True
-        
+    len_lim = min_len
+    if title == 'Abstract' : 
+        len_lim = 10
+    if sec_len >= len_lim :
+        text_len += sec_len
         dest_file = dest_path_sec+article+'_'+str(sec_num)+'.txt'
-        title_list += article+'_'+str(sec_num)+','+title+'\n'
+        title_list.append(article+'_'+str(sec_num)+','+title)
+#        title_list += article+'_'+str(sec_num)+','+title+'\n'
 
         try :
             with io.open(dest_file, 'w', encoding='utf8') as ifile :
-                ifile.write(s+'\n')
+                ifile.write(s)
             ifile.closed
         except IOError :
             print dest_file,' not found'
             return
     else :
         write_error(article + '_' + str(sec_num), sec_len)
-#    print keep
 
 
 def write_error(file_name, size) :
-    try :
-        with io.open(error_file, 'a', encoding='utf8') as erfile :
-            erfile.write('%s, %s\n' % (unicode(file_name),size))
-            print >> sys.stderr, '%s added to error file' % file_name
-        erfile.closed
-    except IOError :
-        print 'file not found'
-        return                                  
+    global err_list
+    err_list.append(file_name+','+str(size))
+    print '{0} added to error list, word count {1}'.format(file_name,size)
     return
 
 
@@ -209,54 +232,57 @@ def write_error(file_name, size) :
 
 
 def main(argv):
-    global dest_path_sec, dest_path_full
+    global dest_path_sec, dest_path_full, min_len
 
-    if len(argv) < 3 :
-        print '**Usage: ', argv[0], '<input path> <output path> [stem]'
+    if len(argv) != 4 :
+        print '**Usage: ', argv[0], ', <work folder> <min length> <stem|nonstem>'
         sys.exit()
 
-    in_path = argv[1]
-    dest_path = argv[2]
-    stem = False
+    root = argv[1]
+    min_len = int(argv[2])
+    stem = argv[3]
 
-    if len(argv) == 4 :
-        if argv[3] == 'stem' :
-            stem = True
-        else :
-            print "**Usage:  ", argv[0], "<input path> <output path> [stem].\n\tDid u mean 'stem'?"
-            sys.exit()
+    in_path = '{}arXiv_raw/'.format(root)
+    dest_path = '{0}preproc_{1}_{2}/'.format(root,stem,min_len)
+    titles = '{0}section_titles_{1}.txt'.format(root,min_len)
+    errors = '{0}errorfiles_{1}_{2}.txt'.format(root,stem,min_len)
 
-    if in_path[-1] != '/' :
-        in_path += '/'
-    
-    if not os.path.exists(dest_path) :
-        os.makedirs(dest_path)
+#    if in_path[-1] != '/' :
+#        in_path += '/'
+#    
+#    if not os.path.exists(dest_path) :
+#        os.makedirs(dest_path)
+#
+#    if dest_path[-1] != '/' :
+#        dest_path += '/'
 
-    if dest_path[-1] != '/' :
-        dest_path += '/'
-
-    dest_path_sec = dest_path+'secs/'
+    dest_path_sec = '{0}sect/'.format(dest_path, stem, min_len)
 
     if not os.path.exists(dest_path_sec) :
         os.makedirs(dest_path_sec)
 
-    dest_path_full = dest_path + 'full/'
+    dest_path_full = '{0}full/'.format(dest_path, stem, min_len)
     
     if not os.path.exists(dest_path_full) :
         os.makedirs(dest_path_full)
+   
+    raw = os.listdir(in_path)
+    map(lambda doc : xml_open(in_path+doc, stem), raw) 
     
-    map(lambda doc : xml_open(in_path+doc, stem), os.listdir(in_path)) 
+    with io.open(titles,'w', encoding='UTF-8') as f :
+        f.write('\n'.join(title_list))
+    f.closed
 
-    global title_list
+    with io.open(errors, 'w', encoding='utf8') as erfile :
+        erfile.write(unicode('\n'.join(err_list)))
+    erfile.closed
 
-    with io.open('/data/pulp/support/'+'sections'+'_'+today+'_title.txt','a', encoding='UTF-8') as title_file :
-        title_file.write(title_list)
-    title_file.closed
-
-#    with io.open('/data/mallet_tests/support/'+'full'+'_'+today+'_doc_title.txt','a', encoding='utf8') as main_title_file :
-#        main_title_file.write(title_list_main)
-#    main_title_file.closed
-
+    # uncomment to save article titles
+#    with io.open('data/main_titles_{}.txt'.format{min_len},'w', encoding='utf8') as f :
+#        f.write(title_list_main)
+#    f.closed
+    
+    print 'processed {}/{} articles'.format(raw,i)
     pass
 
 

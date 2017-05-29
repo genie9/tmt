@@ -1,23 +1,36 @@
 from subprocess import call
-from os import system as sys
-import json
+from os import system as s
+import sys, os
 
 
-path_cs = "/data/mallet_tests/arXiv_cs/"
+def cat_copy(line) :
+    line =  line.strip()
+    arx_id, path = line.split(',')
 
-with open("/home/evly/tmt/bigdata/file_matrix.json", 'r') as j_data :
-    data = json.loads(j_data.read())
-    for item in data :
-        path_dir = item.get('path')+'/' 
-        print 'path ', path_dir
-        num = item.get('id')
-        if path_dir.rfind('.xml/') == -1 :
-            do_cat = 'cat ' + path_dir+ '*.xml >> ' + path_cs + num + ".xml"
-            print 'id ', num, ' catenated'
-            sys(do_cat)
-        else :
-#            path_dir = path_dir[:-1] 
-            do_cp = 'cp ' + path_dir[:-1] + ' ' + path_cs
-            sys(do_cp)
-            print 'id ', num, ' copied'
-j_data.closed
+    if path.rfind('.xml') == -1 :
+        do_cat = 'cat '+path+'/*.xml >> '+path_cs + arx_id+'.xml'
+        s(do_cat)
+        print '{} catenated'.format(arx_id)
+    else :
+        do_cp = 'cp ' + path + ' ' + path_cs
+        s(do_cp)
+        print '{} copied'.format(arx_id)
+
+
+argv = sys.argv
+if len(argv) != 2 :
+    print '**Usage ', argv[0], ': <work folder>.'
+    sys.exit()
+
+root = argv[1]
+
+path_cs = "{}arXiv_raw/".format(root)
+
+try:
+    os.makedirs(path_cs)
+except os.error:
+    pass
+
+with open("{}paths.csv".format(root), 'r') as f :
+    map(cat_copy, f.readlines())
+f.closed
