@@ -6,7 +6,7 @@ sorsa_path=/data/arXiv-
 
 #rm /home/evly/tmt/bigdata/latexml_errors.txt /home/evly/tmt/bigdata/latexml_fatalerrors.txt
 # delete month if needed to process again
-#rm -rf ${sorsa_path}15-src/1508/ 
+rm -rf ${sorsa_path}16-src/ 
 
 if [ ! -d "${sorsa_path}" ]; then
         mkdir -p ${sorsa_path}
@@ -17,7 +17,7 @@ for tarzan in ${tar_path}/*; do
     mm=$(echo ${tarzan}|cut -d'_' -f6) 
     echo "tarball's month $mm"
 
-    if ! [[ $mm =~ ^(15[0-9]*) ]]; then # change conditions for month not to be included in processing (e.g. alredy processed ones)
+    if ! [[ $mm =~ ^(15[0-9]*) ]]; then # change conditions for month/s not to be included in processing (e.g. alredy processed ones)
         yy=$(echo ${tarzan}|cut -d'_' -f6|cut -c1-2)
         src_yy=${sorsa_path}${yy}
         echo sorsa ja vuosi ${src_yy}
@@ -25,8 +25,8 @@ for tarzan in ${tar_path}/*; do
         done_mm=${src_yy}/${mm}
         echo "sorsa ${src_mm}, done ${done_mm}"
 
-        echo creating folders per year and month for source and files
-        if [ ! -d ${src_mm} ] && [ ! -d ${done_mm} ]; then
+        if [ ! -d ${src_mm} ] || [ ! -d ${done_mm} ]; then
+            echo creating folders per year and month for source and files
             mkdir -p ${src_mm} ${done_mm}/pdfss ${done_mm}/nonxml
         fi
         
