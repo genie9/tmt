@@ -1,11 +1,18 @@
 import pandas as pd
+from numpy.core import multiarray
 import matplotlib.pyplot as plt
 import sys
 
-in_file = sys.argv[1]
-out_file = sys.argv[2]
 
-props = pd.read_csv(in_file, delimiter='\t', names=['num','File']+[str(i) for i in range(100)], index_col='num', na_values=[''], engine='c')
+argv = sys.argv
+
+in_file = argv[1]
+out_file = argv[2]
+topics = int(argv[3])
+
+props = pd.read_csv(in_file, delimiter='\t', \
+        names=['num','File']+[str(i) for i in range(topics)], \
+        index_col='num', na_values=[''], engine='c')
 #print props[0:5]
 
 props.drop('File', axis=1, inplace=True)

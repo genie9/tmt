@@ -1,7 +1,7 @@
 import xml.sax
 import sys, io, os
 import re
-import time
+import time, datetime
 import requests
 
 
@@ -31,13 +31,12 @@ class metadata_reader(xml.sax.ContentHandler):
             self.count += 1
 
         elif name == 'identifier': 
-            print self.content
+#            print self.content
             arxiv_id.append(self.content.split(':')[-1].replace('/',''))
 
 
 
 def download(parser, start_date, until_date, setspec, max_tries=10):
-    print 'downloader'
     global arxiv_id
 
     # Download constants
@@ -103,33 +102,34 @@ def download(parser, start_date, until_date, setspec, max_tries=10):
             time.sleep(to)
 
         else:
-            print  'Wha happen?'
+#            print  'Wha happen?'
             r.raise_for_status()
 
 
 def main(argv):
     global arxiv_id
     
-    if len(argv) != 4 :
-        print '**Usage: {} <category> <date from> <date until>.'.format(argv[0])
+    if len(argv) != 5 :
+        print '**Usage: {} <category> <date from> <date until> <ids file>.'.format(argv[0])
         sys.exit()
   
     arxiv_set = argv[1]
-    start = argv[2]
-    until = argv[3]
-    root = 'data/{0}_{1}_{2}/'.format(arxiv_set,start,until)
+    start = datetime.datetime.strptime(argv[2], '%y%m%d').strftime('%Y-%m-%d')
+    until = datetime.datetime.strptime(argv[3], '%y%m%d').strftime('%Y-%m-%d')
+    ids = argv[4]
+
     try:
-        os.makedirs(root)
+        os.makedirs(ids.rsplit('/',1)[0])
     except os.error:
         pass
-
+    
     parser = xml.sax.make_parser()
     parser.setContentHandler(metadata_reader())
     
     download(parser, start, until, arxiv_set)
 
-    print 'array ',arxiv_id
-    with open('{}meta_ids.txt'.format(root), 'w') as f :
+#    print 'array ',arxiv_id
+    with open(ids, 'w') as f :
         f.write('\n'.join(arxiv_id))
     f.closed
     

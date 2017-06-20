@@ -39,7 +39,8 @@ for tarzan in ${tar_path}/*; do
         echo transfering pdf files
         mv ${src_mm}/*.pdf ${done_mm}/pdfss/
 #---------------------------------------------------------
-        find ${src_mm} -maxdepth 1 -mindepth 1 | xargs -P 10 -I {} /home/evly/process.sh {} $done_mm
+        find ${src_mm} -maxdepth 1 -mindepth 1 | \
+            xargs -P 10 -I {} scripts/process.sh {} $done_mm
 #------------------------------------------------------------
     fi
 done

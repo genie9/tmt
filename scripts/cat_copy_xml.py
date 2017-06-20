@@ -8,29 +8,28 @@ def cat_copy(line) :
     arx_id, path = line.split(',')
 
     if path.rfind('.xml') == -1 :
-        do_cat = 'cat '+path+'/*.xml >> '+path_cs + arx_id+'.xml'
+        do_cat = 'cat '+path+'/*.xml >> '+a_dir + arx_id+'.xml'
         s(do_cat)
         print '{} catenated'.format(arx_id)
     else :
-        do_cp = 'cp ' + path + ' ' + path_cs
+        do_cp = 'cp ' + path + ' ' + a_dir
         s(do_cp)
         print '{} copied'.format(arx_id)
 
 
 argv = sys.argv
-if len(argv) != 2 :
-    print '**Usage ', argv[0], ': <work folder>.'
+if len(argv) != 3 :
+    print '**Usage ', argv[0], ": <'paths' file> <path to store xml files>."
     sys.exit()
 
-root = argv[1]
-
-path_cs = "{}arXiv_raw/".format(root)
+paths = argv[1]
+a_dir = argv[2]
 
 try:
-    os.makedirs(path_cs)
+    os.makedirs(a_dir)
 except os.error:
     pass
 
-with open("{}paths.csv".format(root), 'r') as f :
+with open(paths, 'r') as f :
     map(cat_copy, f.readlines())
 f.closed

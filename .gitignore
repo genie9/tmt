@@ -5,3 +5,5 @@ data/
 mallet/
 gnuplot/
 *.swp
+*.txt
+!requirements.txt
